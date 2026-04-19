@@ -61,15 +61,18 @@ function LandingPage() {
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button asChild size="xl" variant="hero">
-                <Link to="/register">
-                  Comenzar
+                <Link to="/create">
+                  Crear mi QR ahora
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild size="xl" variant="outline">
-                <Link to="/login">Ya tengo cuenta</Link>
+                <Link to="/register">Crear cuenta gratis</Link>
               </Button>
             </div>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Sin registro para empezar — solo lo necesitas al guardar o descargar.
+            </p>
           </div>
 
           {/* Decorative QR card */}
@@ -136,8 +139,8 @@ function LandingPage() {
             </p>
             <div className="mt-8">
               <Button asChild size="xl" variant="secondary">
-                <Link to="/register">
-                  Comenzar
+                <Link to="/create">
+                  Crear mi QR
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

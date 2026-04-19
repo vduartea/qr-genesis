@@ -1,5 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { QrCode, Plus, Folder, BarChart3 } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { QrCode, Plus, Folder, BarChart3, Settings } from "lucide-react";
+import { useEffect } from "react";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Button } from "@/components/ui/button";
@@ -10,14 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard — Quark" },
       { name: "description", content: "Tu panel para gestionar códigos QR." },
-      { property: "og:title", content: "Dashboard — Quark" },
-      { property: "og:description", content: "Tu panel para gestionar códigos QR." },
     ],
   }),
   component: DashboardPage,
@@ -30,21 +30,47 @@ const stats = [
 ];
 
 function DashboardPage() {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Client-side guard: dashboard is private.
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate({ to: "/login", search: { redirect: "/dashboard" } });
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || !user) {
+    return (
+      <SiteLayout>
+        <PageContainer>
+          <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+            Cargando...
+          </div>
+        </PageContainer>
+      </SiteLayout>
+    );
+  }
+
+  const displayName = user.email?.split("@")[0] ?? "usuario";
+
   return (
     <SiteLayout>
       <PageContainer>
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
-              Dashboard
+              Hola, {displayName} 👋
             </h1>
             <p className="mt-2 text-muted-foreground">
               Tu espacio para crear y organizar códigos QR.
             </p>
           </div>
-          <Button variant="hero" size="lg" disabled>
-            <Plus className="h-4 w-4" />
-            Nuevo QR
+          <Button asChild variant="hero" size="lg">
+            <Link to="/create">
+              <Plus className="h-4 w-4" />
+              Nuevo QR
+            </Link>
           </Button>
         </div>
 
@@ -64,23 +90,41 @@ function DashboardPage() {
           ))}
         </div>
 
-        <Card className="mt-8 border-dashed border-border bg-surface shadow-none">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary shadow-elegant">
-              <QrCode className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <CardTitle className="font-display text-xl">Aún no hay códigos QR</CardTitle>
-            <CardDescription className="mx-auto max-w-md">
-              Esta es la base de tu dashboard. Próximamente podrás crear, organizar y
-              evolucionar tus QRs desde aquí.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center pb-10">
-            <Button variant="outline" disabled>
-              Próximamente
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          <Card className="border-dashed border-border bg-surface shadow-none">
+            <CardHeader>
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-soft">
+                <QrCode className="h-5 w-5 text-primary-foreground" />
+              </div>
+              <CardTitle className="font-display text-lg">Mis QRs</CardTitle>
+              <CardDescription>
+                Aquí aparecerán los códigos que guardes desde el creador.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button asChild variant="outline">
+                <Link to="/create">Crear mi primer QR</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-dashed border-border bg-surface shadow-none">
+            <CardHeader>
+              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent shadow-soft">
+                <Settings className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <CardTitle className="font-display text-lg">Configuración</CardTitle>
+              <CardDescription>
+                Tu cuenta: <span className="font-medium text-foreground">{user.email}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" disabled>
+                Próximamente
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </PageContainer>
     </SiteLayout>
   );
