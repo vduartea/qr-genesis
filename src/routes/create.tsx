@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Save, Sparkles } from "lucide-react";
+import { Download, Eye, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
