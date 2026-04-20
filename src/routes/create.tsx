@@ -39,16 +39,28 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
+// Fixed demo URL for the preview while unauthenticated.
+// Prevents guests from extracting a working QR before signing up.
+const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
+
 function CreatePage() {
   const { user, loading } = useAuth();
   const canvasWrapRef = useRef<HTMLDivElement>(null);
 
   const [value, setValue] = useState("https://quark.app");
+  const [name, setName] = useState("");
   const [fgColor, setFgColor] = useState("#0F172A");
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [size] = useState(256);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
+
+  // Preview uses the user's real URL only after auth; otherwise a fixed demo URL.
+  const previewValue = useMemo(
+    () => (user ? value : DEMO_PREVIEW_URL),
+    [user, value],
+  );
+  const isDemo = !user;
 
   // Restore pending QR on mount
   useEffect(() => {
