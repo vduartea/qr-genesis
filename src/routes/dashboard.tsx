@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useQrs } from "@/hooks/useQrs";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -23,15 +25,25 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
-const stats = [
-  { label: "QRs creados", value: "—", icon: QrCode },
-  { label: "Colecciones", value: "—", icon: Folder },
-  { label: "Escaneos totales", value: "—", icon: BarChart3 },
-];
-
 function DashboardPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { qrs, loading: qrsLoading } = useQrs();
+
+  const totalScans = qrs.reduce((sum, q) => sum + (q.scan_count ?? 0), 0);
+  const stats = [
+    {
+      label: "QRs creados",
+      value: qrsLoading ? "…" : String(qrs.length),
+      icon: QrCode,
+    },
+    { label: "Colecciones", value: "—", icon: Folder },
+    {
+      label: "Escaneos totales",
+      value: qrsLoading ? "…" : String(totalScans),
+      icon: BarChart3,
+    },
+  ];
 
   // Client-side guard: dashboard is private.
   useEffect(() => {
