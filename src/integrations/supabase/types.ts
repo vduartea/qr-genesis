@@ -44,6 +44,48 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_codes: {
+        Row: {
+          created_at: string
+          destination_url: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          is_dynamic: boolean
+          name: string
+          scan_count: number
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          destination_url: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_dynamic?: boolean
+          name: string
+          scan_count?: number
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          destination_url?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_dynamic?: boolean
+          name?: string
+          scan_count?: number
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
