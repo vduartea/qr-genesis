@@ -67,6 +67,7 @@ function CreatePage() {
     const restored = loadPendingQr();
     if (restored) {
       setValue(restored.value);
+      if (restored.name) setName(restored.name);
       setFgColor(restored.fgColor);
       setBgColor(restored.bgColor);
     }
