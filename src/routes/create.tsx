@@ -90,6 +90,10 @@ function CreatePage() {
   }, [user, loading]);
 
   const doDownload = () => {
+    if (!user) {
+      // Safety net — never download from a guest preview (which is the demo QR).
+      return;
+    }
     const canvas = canvasWrapRef.current?.querySelector("canvas");
     if (!canvas) {
       toast.error("No se pudo generar la imagen");
@@ -98,7 +102,12 @@ function CreatePage() {
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `quark-qr-${Date.now()}.png`;
+    const safeName = (name.trim() || "quark-qr")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "quark-qr";
+    a.download = `${safeName}-${Date.now()}.png`;
     a.click();
     toast.success("QR descargado");
   };
@@ -116,7 +125,7 @@ function CreatePage() {
       return;
     }
     // Persist progress + intent, then open gate
-    savePendingQr({ value, fgColor, bgColor, size });
+    savePendingQr({ value, name, fgColor, bgColor, size });
     setPendingAction(action);
     setLocalPendingAction(action);
     setGateOpen(true);
