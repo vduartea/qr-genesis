@@ -33,10 +33,14 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Quark — Gestión moderna de códigos QR" },
       { name: "description", content: "Plataforma SaaS para crear y gestionar códigos QR." },
-      { property: "og:title", content: "Quark" },
+      { property: "og:title", content: "Quark — Gestión moderna de códigos QR" },
       { property: "og:description", content: "Plataforma SaaS para crear y gestionar códigos QR." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Quark — Gestión moderna de códigos QR" },
+      { name: "twitter:description", content: "Plataforma SaaS para crear y gestionar códigos QR." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f20e822f-ee59-491d-b962-c1e4a35e15cc/id-preview-d68344cc--3cc029ce-85db-418c-b539-1373ae597ab2.lovable.app-1776700143571.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/f20e822f-ee59-491d-b962-c1e4a35e15cc/id-preview-d68344cc--3cc029ce-85db-418c-b539-1373ae597ab2.lovable.app-1776700143571.png" },
     ],
     links: [
       {
