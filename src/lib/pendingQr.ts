@@ -7,6 +7,7 @@ export type PendingAction = "save" | "download" | null;
 
 export interface PendingQrState {
   value: string;
+  name?: string;
   fgColor: string;
   bgColor: string;
   size: number;

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Save, Sparkles } from "lucide-react";
+import { Download, Eye, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -39,22 +39,35 @@ export const Route = createFileRoute("/create")({
   component: CreatePage,
 });
 
+// Fixed demo URL for the preview while unauthenticated.
+// Prevents guests from extracting a working QR before signing up.
+const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
+
 function CreatePage() {
   const { user, loading } = useAuth();
   const canvasWrapRef = useRef<HTMLDivElement>(null);
 
   const [value, setValue] = useState("https://quark.app");
+  const [name, setName] = useState("");
   const [fgColor, setFgColor] = useState("#0F172A");
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [size] = useState(256);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
 
+  // Preview uses the user's real URL only after auth; otherwise a fixed demo URL.
+  const previewValue = useMemo(
+    () => (user ? value : DEMO_PREVIEW_URL),
+    [user, value],
+  );
+  const isDemo = !user;
+
   // Restore pending QR on mount
   useEffect(() => {
     const restored = loadPendingQr();
     if (restored) {
       setValue(restored.value);
+      if (restored.name) setName(restored.name);
       setFgColor(restored.fgColor);
       setBgColor(restored.bgColor);
     }
@@ -77,6 +90,10 @@ function CreatePage() {
   }, [user, loading]);
 
   const doDownload = () => {
+    if (!user) {
+      // Safety net — never download from a guest preview (which is the demo QR).
+      return;
+    }
     const canvas = canvasWrapRef.current?.querySelector("canvas");
     if (!canvas) {
       toast.error("No se pudo generar la imagen");
@@ -85,7 +102,12 @@ function CreatePage() {
     const url = canvas.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `quark-qr-${Date.now()}.png`;
+    const safeName = (name.trim() || "quark-qr")
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "quark-qr";
+    a.download = `${safeName}-${Date.now()}.png`;
     a.click();
     toast.success("QR descargado");
   };
@@ -103,7 +125,7 @@ function CreatePage() {
       return;
     }
     // Persist progress + intent, then open gate
-    savePendingQr({ value, fgColor, bgColor, size });
+    savePendingQr({ value, name, fgColor, bgColor, size });
     setPendingAction(action);
     setLocalPendingAction(action);
     setGateOpen(true);
@@ -132,6 +154,16 @@ function CreatePage() {
               <CardDescription>Define qué codifica tu QR y su apariencia.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="qr-name">Nombre (opcional)</Label>
+                <Input
+                  id="qr-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Mi QR de campaña"
+                  maxLength={80}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="qr-value">Texto o URL</Label>
                 <Input
@@ -199,26 +231,42 @@ function CreatePage() {
           <Card className="lg:col-span-2 border-border/60 shadow-soft">
             <CardHeader>
               <CardTitle className="font-display text-xl">Vista previa</CardTitle>
-              <CardDescription>Se actualiza al instante.</CardDescription>
+              <CardDescription>
+                {isDemo
+                  ? "Demostración con una URL fija."
+                  : "QR real con tu URL — listo para descargar."}
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div
                 ref={canvasWrapRef}
-                className="flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6"
+                className="relative flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6"
               >
-                {value.trim() ? (
-                  <QRCodeCanvas
-                    value={value}
-                    size={size}
-                    fgColor={fgColor}
-                    bgColor={bgColor}
-                    level="M"
-                    includeMargin
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">Escribe algo para generar el QR</p>
+                <QRCodeCanvas
+                  value={previewValue}
+                  size={size}
+                  fgColor={fgColor}
+                  bgColor={bgColor}
+                  level="M"
+                  includeMargin
+                />
+                {isDemo && (
+                  <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-soft backdrop-blur">
+                    <Eye className="h-3 w-3 text-accent" />
+                    Demo
+                  </div>
                 )}
               </div>
+              {isDemo ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Estás viendo una <span className="font-medium text-foreground">vista previa de demostración</span>.
+                  El QR no apunta a tu URL todavía — <span className="font-medium text-foreground">regístrate para generar tu QR real</span>.
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Este QR apunta a <span className="font-medium text-foreground break-all">{value || "tu URL"}</span>.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
