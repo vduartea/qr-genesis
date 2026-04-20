@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
+import { useQrs } from "@/hooks/useQrs";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -23,15 +25,25 @@ export const Route = createFileRoute("/dashboard")({
   component: DashboardPage,
 });
 
-const stats = [
-  { label: "QRs creados", value: "—", icon: QrCode },
-  { label: "Colecciones", value: "—", icon: Folder },
-  { label: "Escaneos totales", value: "—", icon: BarChart3 },
-];
-
 function DashboardPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { qrs, loading: qrsLoading } = useQrs();
+
+  const totalScans = qrs.reduce((sum, q) => sum + (q.scan_count ?? 0), 0);
+  const stats = [
+    {
+      label: "QRs creados",
+      value: qrsLoading ? "…" : String(qrs.length),
+      icon: QrCode,
+    },
+    { label: "Colecciones", value: "—", icon: Folder },
+    {
+      label: "Escaneos totales",
+      value: qrsLoading ? "…" : String(totalScans),
+      icon: BarChart3,
+    },
+  ];
 
   // Client-side guard: dashboard is private.
   useEffect(() => {
@@ -90,7 +102,15 @@ function DashboardPage() {
           ))}
         </div>
 
+        <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-3">
+          <Badge variant="secondary">Etapa 3</Badge>
+          <span className="text-sm text-muted-foreground">
+            Modelo de datos listo · Preparado para guardar QRs
+          </span>
+        </div>
+
         <div className="mt-8 grid gap-4 md:grid-cols-2">
+
           <Card className="border-dashed border-border bg-surface shadow-none">
             <CardHeader>
               <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-soft">
