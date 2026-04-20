@@ -155,6 +155,16 @@ function CreatePage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
+                <Label htmlFor="qr-name">Nombre (opcional)</Label>
+                <Input
+                  id="qr-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Mi QR de campaña"
+                  maxLength={80}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="qr-value">Texto o URL</Label>
                 <Input
                   id="qr-value"
