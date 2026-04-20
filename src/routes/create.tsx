@@ -231,26 +231,42 @@ function CreatePage() {
           <Card className="lg:col-span-2 border-border/60 shadow-soft">
             <CardHeader>
               <CardTitle className="font-display text-xl">Vista previa</CardTitle>
-              <CardDescription>Se actualiza al instante.</CardDescription>
+              <CardDescription>
+                {isDemo
+                  ? "Demostración con una URL fija."
+                  : "QR real con tu URL — listo para descargar."}
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               <div
                 ref={canvasWrapRef}
-                className="flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6"
+                className="relative flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6"
               >
-                {value.trim() ? (
-                  <QRCodeCanvas
-                    value={value}
-                    size={size}
-                    fgColor={fgColor}
-                    bgColor={bgColor}
-                    level="M"
-                    includeMargin
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">Escribe algo para generar el QR</p>
+                <QRCodeCanvas
+                  value={previewValue}
+                  size={size}
+                  fgColor={fgColor}
+                  bgColor={bgColor}
+                  level="M"
+                  includeMargin
+                />
+                {isDemo && (
+                  <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-soft backdrop-blur">
+                    <Eye className="h-3 w-3 text-accent" />
+                    Demo
+                  </div>
                 )}
               </div>
+              {isDemo ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Estás viendo una <span className="font-medium text-foreground">vista previa de demostración</span>.
+                  El QR no apunta a tu URL todavía — <span className="font-medium text-foreground">regístrate para generar tu QR real</span>.
+                </p>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Este QR apunta a <span className="font-medium text-foreground break-all">{value || "tu URL"}</span>.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
