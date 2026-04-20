@@ -102,7 +102,15 @@ function DashboardPage() {
           ))}
         </div>
 
+        <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-3">
+          <Badge variant="secondary">Etapa 3</Badge>
+          <span className="text-sm text-muted-foreground">
+            Modelo de datos listo · Preparado para guardar QRs
+          </span>
+        </div>
+
         <div className="mt-8 grid gap-4 md:grid-cols-2">
+
           <Card className="border-dashed border-border bg-surface shadow-none">
             <CardHeader>
               <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-soft">
