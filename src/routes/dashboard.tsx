@@ -14,6 +14,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useQrs } from "@/hooks/useQrs";
 import { Badge } from "@/components/ui/badge";
+import { QrList } from "@/components/qr/QrList";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -103,48 +104,35 @@ function DashboardPage() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-surface px-4 py-3">
-          <Badge variant="secondary">Etapa 3</Badge>
+          <Badge variant="secondary">Etapa 6</Badge>
           <span className="text-sm text-muted-foreground">
-            Modelo de datos listo · Preparado para guardar QRs
+            Tus QRs guardados, listos para descargar o eliminar
           </span>
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
+        <section className="mt-10">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display text-xl font-semibold">Mis QRs</h2>
+          </div>
+          <QrList />
+        </section>
 
-          <Card className="border-dashed border-border bg-surface shadow-none">
-            <CardHeader>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-primary shadow-soft">
-                <QrCode className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <CardTitle className="font-display text-lg">Mis QRs</CardTitle>
-              <CardDescription>
-                Aquí aparecerán los códigos que guardes desde el creador.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild variant="outline">
-                <Link to="/create">Crear mi primer QR</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-dashed border-border bg-surface shadow-none">
-            <CardHeader>
-              <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent shadow-soft">
-                <Settings className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <CardTitle className="font-display text-lg">Configuración</CardTitle>
-              <CardDescription>
-                Tu cuenta: <span className="font-medium text-foreground">{user.email}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" disabled>
-                Próximamente
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="mt-8 border-dashed border-border bg-surface shadow-none">
+          <CardHeader>
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-accent shadow-soft">
+              <Settings className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <CardTitle className="font-display text-lg">Configuración</CardTitle>
+            <CardDescription>
+              Tu cuenta: <span className="font-medium text-foreground">{user.email}</span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" disabled>
+              Próximamente
+            </Button>
+          </CardContent>
+        </Card>
       </PageContainer>
     </SiteLayout>
   );
