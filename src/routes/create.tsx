@@ -47,6 +47,8 @@ const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
 function CreatePage() {
   const { user, loading } = useAuth();
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  // Guard against duplicate auto-execution after login (StrictMode + auth events).
+  const autoRanRef = useRef(false);
 
   const [value, setValue] = useState("https://quark.app");
   const [name, setName] = useState("");
@@ -55,6 +57,7 @@ function CreatePage() {
   const [size] = useState(256);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
+  const [saving, setSaving] = useState(false);
 
   // Preview uses the user's real URL only after auth; otherwise a fixed demo URL.
   const previewValue = useMemo(
@@ -90,7 +93,7 @@ function CreatePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
-  const doDownload = () => {
+  const doDownload = useCallback(() => {
     if (!user) {
       // Safety net — never download from a guest preview (which is the demo QR).
       return;
@@ -111,14 +114,40 @@ function CreatePage() {
     a.download = `${safeName}-${Date.now()}.png`;
     a.click();
     toast.success("QR descargado");
-  };
+  }, [user, name]);
 
-  const doSave = () => {
-    // Real persistence comes in next stage — simulate with feedback.
-    toast.success("QR guardado en tu cuenta", {
-      description: "La gestión completa de QRs llega pronto.",
-    });
-  };
+  const doSave = useCallback(async () => {
+    if (!user) return;
+    if (!value.trim()) {
+      toast.error("Necesitas una URL para guardar el QR");
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    const toastId = toast.loading("Guardando tu QR...");
+    try {
+      const created = await createQr({
+        name: name.trim() || "QR sin nombre",
+        destination_url: value.trim(),
+        type: "url",
+      });
+      toast.success("Tu QR ha sido guardado en tu cuenta", {
+        id: toastId,
+        description: `"${created.name}" está disponible en tu dashboard.`,
+        action: {
+          label: "Ver dashboard",
+          onClick: () => {
+            window.location.href = "/dashboard";
+          },
+        },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast.error("No se pudo guardar el QR", { id: toastId, description: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [user, value, name, saving]);
 
   const triggerProtectedAction = (action: "save" | "download") => {
     if (user) {
