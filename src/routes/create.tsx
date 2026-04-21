@@ -254,10 +254,14 @@ function CreatePage() {
                   size="lg"
                   className="flex-1"
                   onClick={() => triggerProtectedAction("save")}
-                  disabled={!value.trim()}
+                  disabled={!value.trim() || saving}
                 >
-                  <Save className="h-4 w-4" />
-                  Guardar en mi cuenta
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {saving ? "Guardando..." : "Guardar en mi cuenta"}
                 </Button>
               </div>
             </CardContent>
