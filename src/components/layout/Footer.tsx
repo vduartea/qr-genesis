@@ -16,8 +16,8 @@ export function Footer() {
         </div>
         <nav className="flex items-center gap-6 text-sm text-muted-foreground">
           <Link to="/" className="transition-smooth hover:text-foreground">Inicio</Link>
-          <Link to="/login" search={{}} className="transition-smooth hover:text-foreground">Entrar</Link>
-          <Link to="/register" search={{}} className="transition-smooth hover:text-foreground">Crear cuenta</Link>
+          <Link to="/login" search={{ redirect: undefined }} className="transition-smooth hover:text-foreground">Entrar</Link>
+          <Link to="/register" search={{ redirect: undefined }} className="transition-smooth hover:text-foreground">Crear cuenta</Link>
         </nav>
       </div>
     </footer>
