@@ -121,7 +121,7 @@ function LoginPage() {
               ¿No tienes cuenta?{" "}
               <Link
                 to="/register"
-                search={search.redirect ? { redirect: search.redirect } : {}}
+                search={{ redirect: search.redirect }}
                 className="font-medium text-foreground hover:underline"
               >
                 Crear cuenta

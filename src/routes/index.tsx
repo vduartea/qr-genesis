@@ -67,7 +67,7 @@ function LandingPage() {
                 </Link>
               </Button>
               <Button asChild size="xl" variant="outline">
-                <Link to="/register">Crear cuenta gratis</Link>
+                <Link to="/register" search={{ redirect: undefined }}>Crear cuenta gratis</Link>
               </Button>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">

@@ -62,10 +62,10 @@ export function Navbar() {
           ) : !loading ? (
             <>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/login">Entrar</Link>
+                <Link to="/login" search={{ redirect: undefined }}>Entrar</Link>
               </Button>
               <Button asChild size="sm" variant="hero">
-                <Link to="/register">Crear cuenta</Link>
+                <Link to="/register" search={{ redirect: undefined }}>Crear cuenta</Link>
               </Button>
             </>
           ) : null}

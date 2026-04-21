@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Eye, Save, Sparkles } from "lucide-react";
+import { Download, Eye, Loader2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -26,6 +26,7 @@ import {
   setPendingAction,
   type PendingAction,
 } from "@/lib/pendingQr";
+import { createQr } from "@/services/qrService";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -46,6 +47,8 @@ const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
 function CreatePage() {
   const { user, loading } = useAuth();
   const canvasWrapRef = useRef<HTMLDivElement>(null);
+  // Guard against duplicate auto-execution after login (StrictMode + auth events).
+  const autoRanRef = useRef(false);
 
   const [value, setValue] = useState("https://quark.app");
   const [name, setName] = useState("");
@@ -54,6 +57,7 @@ function CreatePage() {
   const [size] = useState(256);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
+  const [saving, setSaving] = useState(false);
 
   // Preview uses the user's real URL only after auth; otherwise a fixed demo URL.
   const previewValue = useMemo(
@@ -73,23 +77,7 @@ function CreatePage() {
     }
   }, []);
 
-  // After login, auto-resume pending action
-  useEffect(() => {
-    if (loading || !user) return;
-    const pending = getPendingAction();
-    if (!pending) return;
-    clearPendingAction();
-    // Small delay so canvas is mounted
-    const t = setTimeout(() => {
-      if (pending === "download") doDownload();
-      else if (pending === "save") doSave();
-      clearPendingQr();
-    }, 200);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading]);
-
-  const doDownload = () => {
+  const doDownload = useCallback(() => {
     if (!user) {
       // Safety net — never download from a guest preview (which is the demo QR).
       return;
@@ -110,18 +98,65 @@ function CreatePage() {
     a.download = `${safeName}-${Date.now()}.png`;
     a.click();
     toast.success("QR descargado");
-  };
+  }, [user, name]);
 
-  const doSave = () => {
-    // Real persistence comes in next stage — simulate with feedback.
-    toast.success("QR guardado en tu cuenta", {
-      description: "La gestión completa de QRs llega pronto.",
-    });
-  };
+  const doSave = useCallback(async () => {
+    if (!user) return;
+    if (!value.trim()) {
+      toast.error("Necesitas una URL para guardar el QR");
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    const toastId = toast.loading("Guardando tu QR...");
+    try {
+      const created = await createQr({
+        name: name.trim() || "QR sin nombre",
+        destination_url: value.trim(),
+        type: "url",
+      });
+      toast.success("Tu QR ha sido guardado en tu cuenta", {
+        id: toastId,
+        description: `"${created.name}" está disponible en tu dashboard.`,
+        action: {
+          label: "Ver dashboard",
+          onClick: () => {
+            window.location.href = "/dashboard";
+          },
+        },
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Error desconocido";
+      toast.error("No se pudo guardar el QR", { id: toastId, description: msg });
+    } finally {
+      setSaving(false);
+    }
+  }, [user, value, name, saving]);
+
+  // After login, auto-resume pending action (runs once per session).
+  useEffect(() => {
+    if (loading || !user) return;
+    if (autoRanRef.current) return;
+    const pending = getPendingAction();
+    if (!pending) return;
+    autoRanRef.current = true;
+    clearPendingAction();
+    // Small delay so canvas is mounted with the real (post-login) value.
+    const t = setTimeout(() => {
+      if (pending === "download") {
+        doDownload();
+        clearPendingQr();
+      } else if (pending === "save") {
+        void doSave().finally(() => clearPendingQr());
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [user, loading, doDownload, doSave]);
 
   const triggerProtectedAction = (action: "save" | "download") => {
     if (user) {
-      action === "download" ? doDownload() : doSave();
+      if (action === "download") doDownload();
+      else void doSave();
       return;
     }
     // Persist progress + intent, then open gate
@@ -219,10 +254,14 @@ function CreatePage() {
                   size="lg"
                   className="flex-1"
                   onClick={() => triggerProtectedAction("save")}
-                  disabled={!value.trim()}
+                  disabled={!value.trim() || saving}
                 >
-                  <Save className="h-4 w-4" />
-                  Guardar en mi cuenta
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  {saving ? "Guardando..." : "Guardar en mi cuenta"}
                 </Button>
               </div>
             </CardContent>
