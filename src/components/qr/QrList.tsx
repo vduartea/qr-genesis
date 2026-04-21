@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
+import { buildRedirectUrl } from "@/lib/qrUrl";
 
 function shortUrl(url: string, max = 48): string {
   if (url.length <= max) return url;
@@ -134,7 +135,7 @@ export function QrList() {
               <div className="rounded-lg bg-white p-3 shadow-soft">
                 <QRCodeCanvas
                   id={`qr-canvas-${qr.id}`}
-                  value={qr.destination_url}
+                  value={buildRedirectUrl(qr.id)}
                   size={120}
                   level="M"
                   includeMargin={false}

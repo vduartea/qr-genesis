@@ -27,6 +27,7 @@ import {
   type PendingAction,
 } from "@/lib/pendingQr";
 import { createQr } from "@/services/qrService";
+import { buildRedirectUrl } from "@/lib/qrUrl";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -58,12 +59,19 @@ function CreatePage() {
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
   const [saving, setSaving] = useState(false);
+  // After a successful save, the encoded value flips from the user's raw
+  // destination URL to the dynamic /r/{id} URL backed by the new record.
+  const [savedRedirectUrl, setSavedRedirectUrl] = useState<string | null>(null);
 
-  // Preview uses the user's real URL only after auth; otherwise a fixed demo URL.
-  const previewValue = useMemo(
-    () => (user ? value : DEMO_PREVIEW_URL),
-    [user, value],
-  );
+  // Preview/encoded value priority:
+  //  1. Guest → fixed demo URL (no real value extractable).
+  //  2. Authenticated + saved → dynamic /r/{id} URL (the real product output).
+  //  3. Authenticated + unsaved → raw input URL (live preview).
+  const previewValue = useMemo(() => {
+    if (!user) return DEMO_PREVIEW_URL;
+    if (savedRedirectUrl) return savedRedirectUrl;
+    return value;
+  }, [user, value, savedRedirectUrl]);
   const isDemo = !user;
 
   // Restore pending QR on mount
@@ -115,6 +123,9 @@ function CreatePage() {
         destination_url: value.trim(),
         type: "url",
       });
+      // Switch the live preview to the dynamic redirect URL so any
+      // subsequent download embeds /r/{id}, not the raw destination.
+      setSavedRedirectUrl(buildRedirectUrl(created.id));
       toast.success("Tu QR ha sido guardado en tu cuenta", {
         id: toastId,
         description: `"${created.name}" está disponible en tu dashboard.`,
