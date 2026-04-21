@@ -133,6 +133,26 @@ function CreatePage() {
     }
   }, [user, value, name, saving]);
 
+  // After login, auto-resume pending action (runs once per session).
+  useEffect(() => {
+    if (loading || !user) return;
+    if (autoRanRef.current) return;
+    const pending = getPendingAction();
+    if (!pending) return;
+    autoRanRef.current = true;
+    clearPendingAction();
+    // Small delay so canvas is mounted with the real (post-login) value.
+    const t = setTimeout(() => {
+      if (pending === "download") {
+        doDownload();
+        clearPendingQr();
+      } else if (pending === "save") {
+        void doSave().finally(() => clearPendingQr());
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [user, loading, doDownload, doSave]);
+
   const triggerProtectedAction = (action: "save" | "download") => {
     if (user) {
       if (action === "download") doDownload();
