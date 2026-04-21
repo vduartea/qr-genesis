@@ -77,21 +77,25 @@ function CreatePage() {
     }
   }, []);
 
-  // After login, auto-resume pending action
+  // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
     if (loading || !user) return;
+    if (autoRanRef.current) return;
     const pending = getPendingAction();
     if (!pending) return;
+    autoRanRef.current = true;
     clearPendingAction();
-    // Small delay so canvas is mounted
+    // Small delay so canvas is mounted with the real (post-login) value.
     const t = setTimeout(() => {
-      if (pending === "download") doDownload();
-      else if (pending === "save") doSave();
-      clearPendingQr();
-    }, 200);
+      if (pending === "download") {
+        doDownload();
+        clearPendingQr();
+      } else if (pending === "save") {
+        void doSave().finally(() => clearPendingQr());
+      }
+    }, 250);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading]);
+  }, [user, loading, doDownload, doSave]);
 
   const doDownload = useCallback(() => {
     if (!user) {
@@ -151,7 +155,8 @@ function CreatePage() {
 
   const triggerProtectedAction = (action: "save" | "download") => {
     if (user) {
-      action === "download" ? doDownload() : doSave();
+      if (action === "download") doDownload();
+      else void doSave();
       return;
     }
     // Persist progress + intent, then open gate
