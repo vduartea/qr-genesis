@@ -78,7 +78,7 @@ function RegisterPage() {
     setSubmitting(false);
     if (signInError) {
       toast.success("Cuenta creada. Inicia sesión.");
-      navigate({ to: "/login" });
+      navigate({ to: "/login", search: { redirect: undefined } });
       return;
     }
     toast.success("¡Cuenta creada!");
@@ -151,7 +151,7 @@ function RegisterPage() {
               ¿Ya tienes cuenta?{" "}
               <Link
                 to="/login"
-                search={search.redirect ? { redirect: search.redirect } : {}}
+                search={{ redirect: search.redirect }}
                 className="font-medium text-foreground hover:underline"
               >
                 Entrar
