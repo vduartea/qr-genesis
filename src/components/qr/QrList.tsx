@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
-import { buildRedirectUrl } from "@/lib/qrUrl";
+import { getQrRedirectUrl } from "@/lib/qrUrl";
 
 function shortUrl(url: string, max = 48): string {
   if (url.length <= max) return url;
@@ -48,6 +48,12 @@ function sanitizeFilename(name: string): string {
 }
 
 function downloadQr(qr: QrCode) {
+  const redirectUrl = getQrRedirectUrl(qr.id);
+  if (!redirectUrl) {
+    toast.error("Este QR aún no tiene una URL dinámica válida");
+    return;
+  }
+
   const node = document.getElementById(`qr-canvas-${qr.id}`) as HTMLCanvasElement | null;
   if (!node) {
     toast.error("No se pudo generar el archivo");
@@ -127,20 +133,30 @@ export function QrList() {
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {qrs.map((qr) => (
+          (() => {
+            const redirectUrl = getQrRedirectUrl(qr.id);
+
+            return (
           <Card
             key={qr.id}
             className="group flex flex-col overflow-hidden border-border/60 shadow-soft transition hover:shadow-elegant"
           >
             <div className="flex items-center justify-center bg-surface px-6 py-6">
-              <div className="rounded-lg bg-white p-3 shadow-soft">
-                <QRCodeCanvas
-                  id={`qr-canvas-${qr.id}`}
-                  value={buildRedirectUrl(qr.id)}
-                  size={120}
-                  level="M"
-                  includeMargin={false}
-                />
-              </div>
+              {redirectUrl ? (
+                <div className="rounded-lg bg-white p-3 shadow-soft">
+                  <QRCodeCanvas
+                    id={`qr-canvas-${qr.id}`}
+                    value={redirectUrl}
+                    size={120}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-[144px] w-[144px] items-center justify-center rounded-lg border border-dashed border-border bg-background px-4 text-center text-xs text-muted-foreground">
+                  QR no disponible
+                </div>
+              )}
             </div>
             <CardContent className="flex flex-1 flex-col gap-3 p-4">
               <div className="flex items-start justify-between gap-2">
@@ -191,6 +207,7 @@ export function QrList() {
                   size="sm"
                   className="flex-1"
                   onClick={() => downloadQr(qr)}
+                  disabled={!redirectUrl}
                 >
                   <Download className="h-4 w-4" />
                   Descargar
@@ -207,6 +224,8 @@ export function QrList() {
               </div>
             </CardContent>
           </Card>
+            );
+          })()
         ))}
       </div>
 

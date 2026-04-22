@@ -1,57 +1,19 @@
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { QrCode as QrCodeIcon } from "lucide-react";
-//import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Resolve a QR id to its destination URL using the service-role client
- * (bypasses RLS — required because /r/:id is a public endpoint that does
- * not carry the owner's session). Returns null when the QR is missing,
- * inactive, or expired.
- *
- * Also fires-and-forgets the scan counter increment so tracking works on
- * every code path that resolves the redirect (server handler AND loader).
- */
-async function resolveAndTrack(id: string): Promise<string | null> {
-  if (!UUID_RE.test(id)) return null;
-
-  const { data, error } = await supabase
-    .from("qr_codes")
-    .select("id, destination_url, is_active, expires_at")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  if (!data.is_active) return null;
-  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
-    return null;
-  }
-
-  // Fire-and-forget — never block the redirect on tracking.
-  void supabase
-    .rpc("increment_qr_scan", { _qr_id: data.id })
-    .then(({ error: rpcError }) => {
-      if (rpcError) {
-        console.error("[scan-tracking] increment failed", rpcError);
-      }
-    });
-
-  return data.destination_url;
-}
+import {
+  getQrRedirectOrThrow,
+  resolveQrRedirect,
+  throwExternalQrRedirect,
+} from "@/services/qrRedirect.functions";
 
 export const Route = createFileRoute("/r/$id")({
   server: {
     handlers: {
       GET: async ({ params }) => {
         try {
-          const destination = await resolveAndTrack(params.id);
+          const destination = await getQrRedirectOrThrow(params.id);
           if (!destination) {
-            // Render the invalid page in-place (no redirect loop, no
-            // /r/invalid placeholder URL). 404 + HTML body.
             return new Response(invalidHtml(), {
               status: 404,
               headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -75,22 +37,18 @@ export const Route = createFileRoute("/r/$id")({
       },
     },
   },
-  // SSR/client backup path: if the route is matched via the React tree
-  // (initial SSR render or internal navigation), perform the same lookup
-  // and either issue an external redirect or render the invalid UI.
   loader: async ({ params }) => {
-    const destination = await resolveAndTrack(params.id);
-    if (!destination) {
-      // Render the invalid component — do NOT redirect to /r/invalid (that
-      // creates a loop because the same route would re-resolve).
+    const result = await resolveQrRedirect({ data: { id: params.id } });
+
+    if (result.status !== "ok") {
       return { invalid: true as const };
     }
-    // External URL — use a raw redirect (TanStack's `redirect` helper is
-    // for internal routes only).
-    throw redirect({ href: destination });
+
+    throwExternalQrRedirect(result.destinationUrl);
   },
   component: InvalidQrPage,
   errorComponent: () => <InvalidQrPage />,
+  notFoundComponent: () => <InvalidQrPage />,
 });
 
 function invalidHtml(): string {
