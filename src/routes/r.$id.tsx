@@ -3,99 +3,98 @@ import { QrCode as QrCodeIcon } from "lucide-react";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { Button } from "@/components/ui/button";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Resolve a QR id to its destination URL using the service-role client
+ * (bypasses RLS — required because /r/:id is a public endpoint that does
+ * not carry the owner's session). Returns null when the QR is missing,
+ * inactive, or expired.
+ *
+ * Also fires-and-forgets the scan counter increment so tracking works on
+ * every code path that resolves the redirect (server handler AND loader).
+ */
+async function resolveAndTrack(id: string): Promise<string | null> {
+  if (!UUID_RE.test(id)) return null;
+
+  const { data, error } = await supabaseAdmin
+    .from("qr_codes")
+    .select("id, destination_url, is_active, expires_at")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  if (!data.is_active) return null;
+  if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
+    return null;
+  }
+
+  // Fire-and-forget — never block the redirect on tracking.
+  void supabaseAdmin
+    .rpc("increment_qr_scan", { _qr_id: data.id })
+    .then(({ error: rpcError }) => {
+      if (rpcError) {
+        console.error("[scan-tracking] increment failed", rpcError);
+      }
+    });
+
+  return data.destination_url;
+}
+
 export const Route = createFileRoute("/r/$id")({
-  // Server-side resolver: looks up the QR by id and 302-redirects to its
-  // destination. Runs on every visit (no client JS required), which is
-  // critical because QR scanners hit the URL directly.
   server: {
     handlers: {
       GET: async ({ params }) => {
-        const id = params.id;
-
-        // Basic UUID shape guard — avoids hitting the DB with garbage and
-        // keeps the error path fast.
-        const uuidRe =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (!uuidRe.test(id)) {
-          return new Response(null, {
-            status: 302,
-            headers: { Location: "/r/invalid" },
-          });
-        }
-
         try {
-          const { data, error } = await supabaseAdmin
-            .from("qr_codes")
-            .select("id, destination_url, is_active, expires_at")
-            .eq("id", id)
-            .maybeSingle();
-
-          if (error || !data) {
-            return new Response(null, {
-              status: 302,
-              headers: { Location: "/r/invalid" },
+          const destination = await resolveAndTrack(params.id);
+          if (!destination) {
+            // Render the invalid page in-place (no redirect loop, no
+            // /r/invalid placeholder URL). 404 + HTML body.
+            return new Response(invalidHtml(), {
+              status: 404,
+              headers: { "Content-Type": "text/html; charset=utf-8" },
             });
           }
-
-          if (!data.is_active) {
-            return new Response(null, {
-              status: 302,
-              headers: { Location: "/r/invalid" },
-            });
-          }
-
-          if (data.expires_at && new Date(data.expires_at).getTime() < Date.now()) {
-            return new Response(null, {
-              status: 302,
-              headers: { Location: "/r/invalid" },
-            });
-          }
-
-          // Fire-and-forget scan tracking. We deliberately do NOT await this:
-          // the redirect must stay fast, and a tracking failure should never
-          // block or break the user's scan. Any error is logged, not surfaced.
-          void supabaseAdmin
-            .rpc("increment_qr_scan", { _qr_id: data.id })
-            .then(({ error: rpcError }) => {
-              if (rpcError) {
-                console.error("[scan-tracking] increment failed", rpcError);
-              }
-            });
-
           return new Response(null, {
             status: 302,
             headers: {
-              Location: data.destination_url,
-              // Don't cache the redirect — destination may change (dynamic QRs).
+              Location: destination,
+              // Don't cache — destination may change (dynamic QRs).
               "Cache-Control": "no-store",
             },
           });
-        } catch {
-          return new Response(null, {
-            status: 302,
-            headers: { Location: "/r/invalid" },
+        } catch (err) {
+          console.error("[r/$id] resolver error", err);
+          return new Response(invalidHtml(), {
+            status: 500,
+            headers: { "Content-Type": "text/html; charset=utf-8" },
           });
         }
       },
     },
   },
-  // SSR-safe loader as a backup path: if the route is matched client-side
-  // (e.g. via internal navigation), perform the same lookup and redirect.
+  // SSR/client backup path: if the route is matched via the React tree
+  // (initial SSR render or internal navigation), perform the same lookup
+  // and either issue an external redirect or render the invalid UI.
   loader: async ({ params }) => {
-    // Special case: render the "invalid" UI without a DB call.
-    if (params.id === "invalid") return { invalid: true as const };
-
-    const uuidRe =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRe.test(params.id)) {
-      throw redirect({ to: "/r/$id", params: { id: "invalid" } });
+    const destination = await resolveAndTrack(params.id);
+    if (!destination) {
+      // Render the invalid component — do NOT redirect to /r/invalid (that
+      // creates a loop because the same route would re-resolve).
+      return { invalid: true as const };
     }
-    return { invalid: true as const };
+    // External URL — use a raw redirect (TanStack's `redirect` helper is
+    // for internal routes only).
+    throw redirect({ href: destination });
   },
   component: InvalidQrPage,
-  // Any unexpected error → friendly message, never a blank screen.
   errorComponent: () => <InvalidQrPage />,
 });
+
+function invalidHtml(): string {
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>QR no válido</title><style>body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0b10;color:#f5f5f7;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}.card{max-width:420px;text-align:center}.card h1{font-size:24px;margin:16px 0 8px}.card p{color:#a1a1aa;font-size:14px;margin:0 0 24px}.card a{display:inline-block;padding:10px 18px;border-radius:10px;background:#6366f1;color:#fff;text-decoration:none;font-weight:600;font-size:14px}</style></head><body><div class="card"><h1>QR no válido</h1><p>Este código QR no existe, ha sido eliminado o ya no está activo.</p><a href="/">Ir al inicio</a></div></body></html>`;
+}
 
 function InvalidQrPage() {
   return (
