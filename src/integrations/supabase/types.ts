@@ -91,7 +91,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_qr_scan: { Args: { _qr_id: string }; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

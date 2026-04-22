@@ -26,7 +26,7 @@ export const Route = createFileRoute("/r/$id")({
         try {
           const { data, error } = await supabaseAdmin
             .from("qr_codes")
-            .select("destination_url, is_active, expires_at")
+            .select("id, destination_url, is_active, expires_at")
             .eq("id", id)
             .maybeSingle();
 
@@ -50,6 +50,17 @@ export const Route = createFileRoute("/r/$id")({
               headers: { Location: "/r/invalid" },
             });
           }
+
+          // Fire-and-forget scan tracking. We deliberately do NOT await this:
+          // the redirect must stay fast, and a tracking failure should never
+          // block or break the user's scan. Any error is logged, not surfaced.
+          void supabaseAdmin
+            .rpc("increment_qr_scan", { _qr_id: data.id })
+            .then(({ error: rpcError }) => {
+              if (rpcError) {
+                console.error("[scan-tracking] increment failed", rpcError);
+              }
+            });
 
           return new Response(null, {
             status: 302,
