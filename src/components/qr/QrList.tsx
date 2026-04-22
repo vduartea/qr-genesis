@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon } from "lucide-react";
+import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -167,6 +167,21 @@ export function QrList() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
                 <span className="truncate">{shortUrl(qr.destination_url)}</span>
               </a>
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-surface px-3 py-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  <span>Escaneos</span>
+                </div>
+                {qr.scan_count > 0 ? (
+                  <span className="font-display text-lg font-semibold leading-none text-foreground">
+                    {qr.scan_count}
+                  </span>
+                ) : (
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Sin escaneos aún
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 Creado el {formatDate(qr.created_at)}
               </p>
