@@ -12,10 +12,8 @@ export const Route = createFileRoute("/r/$id")({
     handlers: {
       GET: async ({ params }) => {
         try {
-          const destination = await resolveAndTrack(params.id);
+          const destination = await getQrRedirectOrThrow(params.id);
           if (!destination) {
-            // Render the invalid page in-place (no redirect loop, no
-            // /r/invalid placeholder URL). 404 + HTML body.
             return new Response(invalidHtml(), {
               status: 404,
               headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -39,22 +37,18 @@ export const Route = createFileRoute("/r/$id")({
       },
     },
   },
-  // SSR/client backup path: if the route is matched via the React tree
-  // (initial SSR render or internal navigation), perform the same lookup
-  // and either issue an external redirect or render the invalid UI.
   loader: async ({ params }) => {
-    const destination = await resolveAndTrack(params.id);
-    if (!destination) {
-      // Render the invalid component — do NOT redirect to /r/invalid (that
-      // creates a loop because the same route would re-resolve).
+    const result = await resolveQrRedirect({ data: { id: params.id } });
+
+    if (result.status !== "ok") {
       return { invalid: true as const };
     }
-    // External URL — use a raw redirect (TanStack's `redirect` helper is
-    // for internal routes only).
-    throw redirect({ href: destination });
+
+    throwExternalQrRedirect(result.destinationUrl);
   },
   component: InvalidQrPage,
   errorComponent: () => <InvalidQrPage />,
+  notFoundComponent: () => <InvalidQrPage />,
 });
 
 function invalidHtml(): string {
