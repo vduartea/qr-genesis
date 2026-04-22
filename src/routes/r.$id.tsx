@@ -2,20 +2,20 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { resolveAndTrackQr } from "@/server/qrRedirect.server";
 
 export const Route = createFileRoute("/r/$id")({
-  server: {
-    handlers: {
-      GET: async ({ params }) => {
-        const destination = await resolveAndTrackQr(params.id);
+  loader: async ({ params }) => {
+    console.log("[route] loader running", params.id);
 
-        if (!destination) {
-          return new Response(
-            "QR no válido: este código QR no existe o no está activo",
-            { status: 404 }
-          );
-        }
+    const destination = await resolveAndTrackQr(params.id);
 
-        return Response.redirect(destination, 302);
-      },
-    },
+    if (!destination) {
+      throw new Response(
+        "QR no válido: este código QR no existe o no está activo",
+        { status: 404 }
+      );
+    }
+
+    throw redirect({
+      href: destination,
+    });
   },
 });
