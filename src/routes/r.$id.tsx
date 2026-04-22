@@ -1,11 +1,13 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { resolveAndTrackQr } from "@/server/qrRedirect.server";
+import { resolveAndTrackQr } from "@/server/qrRedirect";
 
 export const Route = createFileRoute("/r/$id")({
   loader: async ({ params }) => {
     console.log("[route] loader running", params.id);
 
-    const destination = await resolveAndTrackQr(params.id);
+    const destination = await resolveAndTrackQr({
+      data: params.id,
+    });
 
     if (!destination) {
       throw new Response(
