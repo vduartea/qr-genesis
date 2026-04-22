@@ -1,6 +1,7 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { QrCode as QrCodeIcon } from "lucide-react";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+//import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const UUID_RE =
@@ -18,7 +19,7 @@ const UUID_RE =
 async function resolveAndTrack(id: string): Promise<string | null> {
   if (!UUID_RE.test(id)) return null;
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await supabase
     .from("qr_codes")
     .select("id, destination_url, is_active, expires_at")
     .eq("id", id)
@@ -31,7 +32,7 @@ async function resolveAndTrack(id: string): Promise<string | null> {
   }
 
   // Fire-and-forget — never block the redirect on tracking.
-  void supabaseAdmin
+  void supabase
     .rpc("increment_qr_scan", { _qr_id: data.id })
     .then(({ error: rpcError }) => {
       if (rpcError) {
