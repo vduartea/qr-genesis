@@ -72,6 +72,7 @@ export function QrList() {
   const { qrs, loading, error, remove } = useQrs();
   const [pendingDelete, setPendingDelete] = useState<QrCode | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState<QrCode | null>(null);
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return;
