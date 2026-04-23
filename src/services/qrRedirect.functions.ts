@@ -62,13 +62,18 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
       return { status: "invalid" };
     }
 
-    void supabase
-      .rpc("increment_qr_scan", { _qr_id: qr.id })
-      .then(({ error: rpcError }) => {
-        if (rpcError) {
-          console.error("[qr-redirect] scan increment failed", rpcError);
-        }
-      });
+    // IMPORTANT: await the RPC. In the Worker runtime, the request context
+    // terminates as soon as we return the Response, which would cancel an
+    // un-awaited promise and prevent scan_count from being updated.
+    const { error: rpcError } = await supabase.rpc("increment_qr_scan", {
+      _qr_id: qr.id,
+    });
+
+    if (rpcError) {
+      console.error("[qr-redirect] scan increment failed", rpcError);
+    } else {
+      console.log("[qr-redirect] scan incremented for", qr.id);
+    }
 
     return { status: "ok", destinationUrl: qr.destination_url };
   });
