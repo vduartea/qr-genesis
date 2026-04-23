@@ -269,6 +269,14 @@ export function QrList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditQrDialog
+        qr={editing}
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      />
     </>
   );
 }
