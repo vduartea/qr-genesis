@@ -49,6 +49,7 @@ export type Database = {
           created_at: string
           destination_url: string
           expires_at: string | null
+          fallback_url: string | null
           id: string
           is_active: boolean
           is_dynamic: boolean
@@ -62,6 +63,7 @@ export type Database = {
           created_at?: string
           destination_url: string
           expires_at?: string | null
+          fallback_url?: string | null
           id?: string
           is_active?: boolean
           is_dynamic?: boolean
@@ -75,6 +77,7 @@ export type Database = {
           created_at?: string
           destination_url?: string
           expires_at?: string | null
+          fallback_url?: string | null
           id?: string
           is_active?: boolean
           is_dynamic?: boolean
