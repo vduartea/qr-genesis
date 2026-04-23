@@ -12,6 +12,7 @@ export type CreateQrInput = {
   is_dynamic?: boolean;
   is_active?: boolean;
   expires_at?: string | null;
+  fallback_url?: string | null;
 };
 
 /**
@@ -38,6 +39,7 @@ export async function createQr(input: CreateQrInput): Promise<QrCode> {
     is_dynamic: input.is_dynamic ?? false,
     is_active: input.is_active ?? true,
     expires_at: input.expires_at ?? null,
+    fallback_url: input.fallback_url ?? null,
   };
 
   const { data, error } = await supabase

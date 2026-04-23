@@ -6,6 +6,7 @@ import { isValidQrId } from "@/lib/qrUrl";
 
 type ResolveQrRedirectResult =
   | { status: "ok"; destinationUrl: string }
+  | { status: "expired"; fallbackUrl: string | null }
   | { status: "invalid" };
 
 /**
