@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3 } from "lucide-react";
+import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
 import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
 import { getQrRedirectUrl } from "@/lib/qrUrl";
+import { EditQrDialog } from "@/components/qr/EditQrDialog";
 
 function shortUrl(url: string, max = 48): string {
   if (url.length <= max) return url;
@@ -71,6 +72,7 @@ export function QrList() {
   const { qrs, loading, error, remove } = useQrs();
   const [pendingDelete, setPendingDelete] = useState<QrCode | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState<QrCode | null>(null);
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return;
@@ -215,6 +217,14 @@ export function QrList() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setEditing(qr)}
+                  aria-label="Editar QR"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setPendingDelete(qr)}
                   aria-label="Eliminar QR"
@@ -259,6 +269,14 @@ export function QrList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditQrDialog
+        qr={editing}
+        open={editing !== null}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+      />
     </>
   );
 }
