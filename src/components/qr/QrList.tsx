@@ -217,6 +217,14 @@ export function QrList() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => setEditing(qr)}
+                  aria-label="Editar QR"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   onClick={() => setPendingDelete(qr)}
                   aria-label="Eliminar QR"
