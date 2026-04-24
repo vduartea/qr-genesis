@@ -56,6 +56,9 @@ function CreatePage() {
   const [fgColor, setFgColor] = useState("#0F172A");
   const [bgColor, setBgColor] = useState("#FFFFFF");
   const [size] = useState(256);
+  const [expiresAt, setExpiresAt] = useState("");
+  const [fallbackUrl, setFallbackUrl] = useState("");
+  const [fallbackError, setFallbackError] = useState<string | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
   const [saving, setSaving] = useState(false);
@@ -114,6 +117,31 @@ function CreatePage() {
       toast.error("Necesitas una URL para guardar el QR");
       return;
     }
+    // Validate expiration / fallback pair before hitting the network.
+    let expiresIso: string | null = null;
+    if (expiresAt) {
+      const d = new Date(expiresAt);
+      if (Number.isNaN(d.getTime())) {
+        toast.error("Fecha de expiración inválida");
+        return;
+      }
+      expiresIso = d.toISOString();
+      const fb = fallbackUrl.trim();
+      if (!fb) {
+        setFallbackError("La URL de fallback es obligatoria si defines una expiración");
+        toast.error("Falta la URL de fallback para la expiración");
+        return;
+      }
+      try {
+        const u = new URL(fb);
+        if (u.protocol !== "http:" && u.protocol !== "https:") throw new Error();
+      } catch {
+        setFallbackError("Debe ser una URL válida (http:// o https://)");
+        toast.error("URL de fallback inválida");
+        return;
+      }
+    }
+    setFallbackError(null);
     if (saving) return;
     setSaving(true);
     const toastId = toast.loading("Guardando tu QR...");
@@ -122,6 +150,8 @@ function CreatePage() {
         name: name.trim() || "QR sin nombre",
         destination_url: value.trim(),
         type: "url",
+        expires_at: expiresIso,
+        fallback_url: expiresIso ? fallbackUrl.trim() : null,
       });
       // Switch the live preview to the dynamic redirect URL so any
       // subsequent download embeds /r/{id}, not the raw destination.
@@ -142,7 +172,7 @@ function CreatePage() {
     } finally {
       setSaving(false);
     }
-  }, [user, value, name, saving]);
+  }, [user, value, name, saving, expiresAt, fallbackUrl]);
 
   // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
@@ -247,6 +277,58 @@ function CreatePage() {
                     <Input value={bgColor} onChange={(e) => setBgColor(e.target.value)} />
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="qr-expires">Fecha de expiración (opcional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="qr-expires"
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => {
+                      setExpiresAt(e.target.value);
+                      if (!e.target.value) setFallbackError(null);
+                    }}
+                  />
+                  {expiresAt && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setExpiresAt("");
+                        setFallbackError(null);
+                      }}
+                    >
+                      Quitar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pasada esta fecha, el QR redirigirá a la URL de fallback durante 5 segundos.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="qr-fallback">URL después de expiración</Label>
+                <Input
+                  id="qr-fallback"
+                  type="url"
+                  value={fallbackUrl}
+                  onChange={(e) => {
+                    setFallbackUrl(e.target.value);
+                    if (fallbackError) setFallbackError(null);
+                  }}
+                  placeholder="https://ejemplo.com/expirado"
+                  disabled={!expiresAt}
+                />
+                {fallbackError ? (
+                  <p className="text-xs text-destructive">{fallbackError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Obligatoria solo si defines una fecha de expiración.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2 pt-2 sm:flex-row">
