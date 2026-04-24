@@ -50,7 +50,7 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
 
     const { data: qr, error } = await supabase
       .from("qr_codes")
-      .select("id, destination_url, is_active")
+      .select("id, destination_url, is_active, expires_at, fallback_url")
       .eq("id", data.id)
       .maybeSingle();
 
@@ -61,6 +61,13 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
 
     if (!qr || !qr.is_active) {
       return { status: "invalid" };
+    }
+
+    // Expiration check — if expires_at is in the past, do NOT increment
+    // scan_count and do NOT redirect to destination_url. Surface the
+    // fallback URL (if any) so the route can render the expired screen.
+    if (qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now()) {
+      return { status: "expired", fallbackUrl: qr.fallback_url ?? null };
     }
 
     // IMPORTANT: await the RPC. In the Worker runtime, the request context
