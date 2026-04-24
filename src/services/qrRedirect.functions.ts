@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { isValidQrId } from "@/lib/qrUrl";
+import { findActiveRuleUrl, parseTimeRules } from "@/lib/timeRules";
 
 type ResolveQrRedirectResult =
   | { status: "ok"; destinationUrl: string }
@@ -50,7 +51,7 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
 
     const { data: qr, error } = await supabase
       .from("qr_codes")
-      .select("id, destination_url, is_active, expires_at, fallback_url")
+      .select("id, destination_url, is_active, expires_at, fallback_url, time_rules")
       .eq("id", data.id)
       .maybeSingle();
 
@@ -70,6 +71,13 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
       return { status: "expired", fallbackUrl: qr.fallback_url ?? null };
     }
 
+    // Time-based routing — evaluated after expiration. If the current
+    // server time matches an active rule, override destination_url with
+    // that rule's URL. Otherwise fall through to the base destination.
+    const rules = parseTimeRules(qr.time_rules);
+    const activeUrl = findActiveRuleUrl(rules);
+    const finalDestination = activeUrl ?? qr.destination_url;
+
     // IMPORTANT: await the RPC. In the Worker runtime, the request context
     // terminates as soon as we return the Response, which would cancel an
     // un-awaited promise and prevent scan_count from being updated.
@@ -83,7 +91,7 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
       console.log("[qr-redirect] scan incremented for", qr.id);
     }
 
-    return { status: "ok", destinationUrl: qr.destination_url };
+    return { status: "ok", destinationUrl: finalDestination };
   });
 
 export function throwExternalQrRedirect(destinationUrl: string): never {
