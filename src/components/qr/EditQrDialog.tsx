@@ -11,8 +11,21 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
+import {
+  parseTimeRules,
+  validateTimeRules,
+  type TimeRule,
+  type TimeRuleValidationError,
+} from "@/lib/timeRules";
+import { TimeRulesEditor } from "@/components/qr/TimeRulesEditor";
 
 interface EditQrDialogProps {
   qr: QrCode | null;
@@ -52,6 +65,8 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
   const [destinationUrl, setDestinationUrl] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
+  const [timeRules, setTimeRules] = useState<TimeRule[]>([]);
+  const [timeRuleErrors, setTimeRuleErrors] = useState<TimeRuleValidationError[]>([]);
   const [errors, setErrors] = useState<{
     name?: string;
     url?: string;
@@ -66,6 +81,8 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
       setDestinationUrl(qr.destination_url);
       setExpiresAt(isoToLocalInput(qr.expires_at));
       setFallbackUrl(qr.fallback_url ?? "");
+      setTimeRules(parseTimeRules(qr.time_rules));
+      setTimeRuleErrors([]);
       setErrors({});
     }
   }, [qr]);
@@ -107,14 +124,33 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
       return;
     }
 
+    // Validate time rules
+    const trErrors = validateTimeRules(timeRules);
+    if (trErrors.length > 0) {
+      setTimeRuleErrors(trErrors);
+      toast.error("Revisa las reglas de horario");
+      return;
+    }
+    setTimeRuleErrors([]);
+
+    const trimmedRules: TimeRule[] = timeRules.map((r) => ({
+      start: r.start,
+      end: r.end,
+      url: r.url.trim(),
+    }));
+
     const nextFallback = trimmedFallback || null;
+    const prevRules = parseTimeRules(qr.time_rules);
+    const rulesChanged =
+      JSON.stringify(prevRules) !== JSON.stringify(trimmedRules);
 
     // Skip the request if nothing actually changed
     if (
       trimmedName === qr.name &&
       trimmedUrl === qr.destination_url &&
       nextExpiresIso === (qr.expires_at ?? null) &&
-      nextFallback === (qr.fallback_url ?? null)
+      nextFallback === (qr.fallback_url ?? null) &&
+      !rulesChanged
     ) {
       onOpenChange(false);
       return;
@@ -127,6 +163,7 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
         destination_url: trimmedUrl,
         expires_at: nextExpiresIso,
         fallback_url: nextFallback,
+        time_rules: trimmedRules as unknown as QrCode["time_rules"],
       });
       toast.success("QR actualizado correctamente");
       onOpenChange(false);
@@ -139,7 +176,7 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !saving && onOpenChange(o)}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-display">Editar QR</DialogTitle>
           <DialogDescription>
@@ -188,59 +225,91 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-qr-expires">Fecha de expiración (opcional)</Label>
-            <div className="flex gap-2">
-              <Input
-                id="edit-qr-expires"
-                type="datetime-local"
-                value={expiresAt}
-                onChange={(e) => {
-                  setExpiresAt(e.target.value);
-                  if (errors.fallback)
-                    setErrors((prev) => ({ ...prev, fallback: undefined }));
-                }}
-                disabled={saving}
-              />
-              {expiresAt && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setExpiresAt("")}
-                  disabled={saving}
-                >
-                  Quitar
-                </Button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Pasada esta fecha, el QR redirigirá a la URL de fallback.
-            </p>
-          </div>
+          <Accordion
+            type="multiple"
+            defaultValue={[
+              ...(qr?.expires_at ? ["expiration"] : []),
+              ...(parseTimeRules(qr?.time_rules).length > 0 ? ["schedule"] : []),
+            ]}
+            className="rounded-lg border border-border/60"
+          >
+            <AccordionItem value="expiration" className="border-b border-border/60 px-3">
+              <AccordionTrigger className="text-sm font-medium">
+                Expiración del QR
+              </AccordionTrigger>
+              <AccordionContent className="space-y-3 pt-1">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-qr-expires">Fecha de expiración</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="edit-qr-expires"
+                      type="datetime-local"
+                      value={expiresAt}
+                      onChange={(e) => {
+                        setExpiresAt(e.target.value);
+                        if (errors.fallback)
+                          setErrors((prev) => ({ ...prev, fallback: undefined }));
+                      }}
+                      disabled={saving}
+                    />
+                    {expiresAt && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setExpiresAt("")}
+                        disabled={saving}
+                      >
+                        Quitar
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Pasada esta fecha, el QR redirigirá a la URL de fallback.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-qr-fallback">URL después de expiración</Label>
+                  <Input
+                    id="edit-qr-fallback"
+                    type="url"
+                    value={fallbackUrl}
+                    onChange={(e) => {
+                      setFallbackUrl(e.target.value);
+                      if (errors.fallback)
+                        setErrors((prev) => ({ ...prev, fallback: undefined }));
+                    }}
+                    placeholder="https://ejemplo.com/expirado"
+                    disabled={saving || !expiresAt}
+                  />
+                  {errors.fallback ? (
+                    <p className="text-xs text-destructive">{errors.fallback}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Obligatoria solo si defines una fecha de expiración.
+                    </p>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-qr-fallback">URL después de expiración</Label>
-            <Input
-              id="edit-qr-fallback"
-              type="url"
-              value={fallbackUrl}
-              onChange={(e) => {
-                setFallbackUrl(e.target.value);
-                if (errors.fallback)
-                  setErrors((prev) => ({ ...prev, fallback: undefined }));
-              }}
-              placeholder="https://ejemplo.com/expirado"
-              disabled={saving || !expiresAt}
-            />
-            {errors.fallback ? (
-              <p className="text-xs text-destructive">{errors.fallback}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Obligatoria solo si defines una fecha de expiración.
-              </p>
-            )}
-          </div>
+            <AccordionItem value="schedule" className="px-3">
+              <AccordionTrigger className="text-sm font-medium">
+                Redirección por horario
+              </AccordionTrigger>
+              <AccordionContent className="pt-1">
+                <TimeRulesEditor
+                  rules={timeRules}
+                  onChange={(next) => {
+                    setTimeRules(next);
+                    if (timeRuleErrors.length > 0) setTimeRuleErrors([]);
+                  }}
+                  errors={timeRuleErrors}
+                  disabled={saving}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
 
         <DialogFooter>
