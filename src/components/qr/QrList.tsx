@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil } from "lucide-react";
+import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,20 @@ function formatDate(iso: string): string {
       day: "2-digit",
       month: "short",
       year: "numeric",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function formatDateTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch {
     return iso;
@@ -137,6 +151,8 @@ export function QrList() {
         {qrs.map((qr) => (
           (() => {
             const redirectUrl = getQrRedirectUrl(qr.id);
+            const isExpired =
+              !!qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now();
 
             return (
           <Card
@@ -165,7 +181,11 @@ export function QrList() {
                 <h3 className="line-clamp-1 font-display text-base font-semibold">
                   {qr.name}
                 </h3>
-                {qr.is_active ? (
+                {isExpired ? (
+                  <Badge variant="destructive" className="shrink-0">
+                    Expirado
+                  </Badge>
+                ) : qr.is_active ? (
                   <Badge variant="secondary" className="shrink-0">
                     Activo
                   </Badge>
@@ -200,9 +220,21 @@ export function QrList() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">
-                Creado el {formatDate(qr.created_at)}
-              </p>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Creado el {formatDate(qr.created_at)}
+                </p>
+                {qr.expires_at && (
+                  <p
+                    className={`inline-flex items-center gap-1 text-xs ${
+                      isExpired ? "text-destructive" : "text-muted-foreground"
+                    }`}
+                  >
+                    <Clock className="h-3 w-3 shrink-0" />
+                    {isExpired ? "Expiró" : "Expira"} el {formatDateTime(qr.expires_at)}
+                  </p>
+                )}
+              </div>
               <div className="mt-auto flex gap-2 pt-2">
                 <Button
                   variant="outline"
