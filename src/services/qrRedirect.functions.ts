@@ -86,16 +86,6 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
     return { status: "ok", destinationUrl: qr.destination_url };
   });
 
-export async function getQrRedirectOrThrow(id: string) {
-  const result = await resolveQrRedirect({ data: { id } });
-
-  if (result.status !== "ok") {
-    return null;
-  }
-
-  return result.destinationUrl;
-}
-
 export function throwExternalQrRedirect(destinationUrl: string): never {
   throw redirect({ href: destinationUrl });
 }
