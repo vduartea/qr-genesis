@@ -279,6 +279,58 @@ function CreatePage() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="qr-expires">Fecha de expiración (opcional)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="qr-expires"
+                    type="datetime-local"
+                    value={expiresAt}
+                    onChange={(e) => {
+                      setExpiresAt(e.target.value);
+                      if (!e.target.value) setFallbackError(null);
+                    }}
+                  />
+                  {expiresAt && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setExpiresAt("");
+                        setFallbackError(null);
+                      }}
+                    >
+                      Quitar
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pasada esta fecha, el QR redirigirá a la URL de fallback durante 5 segundos.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="qr-fallback">URL después de expiración</Label>
+                <Input
+                  id="qr-fallback"
+                  type="url"
+                  value={fallbackUrl}
+                  onChange={(e) => {
+                    setFallbackUrl(e.target.value);
+                    if (fallbackError) setFallbackError(null);
+                  }}
+                  placeholder="https://ejemplo.com/expirado"
+                  disabled={!expiresAt}
+                />
+                {fallbackError ? (
+                  <p className="text-xs text-destructive">{fallbackError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Obligatoria solo si defines una fecha de expiración.
+                  </p>
+                )}
+              </div>
+
               <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                 <Button
                   variant="hero"
