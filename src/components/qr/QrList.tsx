@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock } from "lucide-react";
+import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
 import { getQrRedirectUrl } from "@/lib/qrUrl";
 import { EditQrDialog } from "@/components/qr/EditQrDialog";
+import { parseTimeRules } from "@/lib/timeRules";
 
 function shortUrl(url: string, max = 48): string {
   if (url.length <= max) return url;
@@ -153,6 +154,8 @@ export function QrList() {
             const redirectUrl = getQrRedirectUrl(qr.id);
             const isExpired =
               !!qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now();
+            const scheduleRules = parseTimeRules(qr.time_rules);
+            const hasSchedule = scheduleRules.length > 0;
 
             return (
           <Card
@@ -232,6 +235,13 @@ export function QrList() {
                   >
                     <Clock className="h-3 w-3 shrink-0" />
                     {isExpired ? "Expiró" : "Expira"} el {formatDateTime(qr.expires_at)}
+                  </p>
+                )}
+                {hasSchedule && (
+                  <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <CalendarClock className="h-3 w-3 shrink-0" />
+                    Horario activo · {scheduleRules.length}{" "}
+                    {scheduleRules.length === 1 ? "regla" : "reglas"}
                   </p>
                 )}
               </div>

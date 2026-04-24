@@ -28,6 +28,18 @@ import {
 } from "@/lib/pendingQr";
 import { createQr } from "@/services/qrService";
 import { buildRedirectUrl } from "@/lib/qrUrl";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  validateTimeRules,
+  type TimeRule,
+  type TimeRuleValidationError,
+} from "@/lib/timeRules";
+import { TimeRulesEditor } from "@/components/qr/TimeRulesEditor";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -59,6 +71,8 @@ function CreatePage() {
   const [expiresAt, setExpiresAt] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
   const [fallbackError, setFallbackError] = useState<string | null>(null);
+  const [timeRules, setTimeRules] = useState<TimeRule[]>([]);
+  const [timeRuleErrors, setTimeRuleErrors] = useState<TimeRuleValidationError[]>([]);
   const [gateOpen, setGateOpen] = useState(false);
   const [pendingAction, setLocalPendingAction] = useState<PendingAction>(null);
   const [saving, setSaving] = useState(false);
@@ -142,6 +156,14 @@ function CreatePage() {
       }
     }
     setFallbackError(null);
+    // Validate time rules
+    const trErrors = validateTimeRules(timeRules);
+    if (trErrors.length > 0) {
+      setTimeRuleErrors(trErrors);
+      toast.error("Revisa las reglas de horario");
+      return;
+    }
+    setTimeRuleErrors([]);
     if (saving) return;
     setSaving(true);
     const toastId = toast.loading("Guardando tu QR...");
@@ -152,6 +174,7 @@ function CreatePage() {
         type: "url",
         expires_at: expiresIso,
         fallback_url: expiresIso ? fallbackUrl.trim() : null,
+        time_rules: timeRules.map((r) => ({ ...r, url: r.url.trim() })),
       });
       // Switch the live preview to the dynamic redirect URL so any
       // subsequent download embeds /r/{id}, not the raw destination.
@@ -172,7 +195,7 @@ function CreatePage() {
     } finally {
       setSaving(false);
     }
-  }, [user, value, name, saving, expiresAt, fallbackUrl]);
+  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules]);
 
   // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
@@ -279,57 +302,87 @@ function CreatePage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="qr-expires">Fecha de expiración (opcional)</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="qr-expires"
-                    type="datetime-local"
-                    value={expiresAt}
-                    onChange={(e) => {
-                      setExpiresAt(e.target.value);
-                      if (!e.target.value) setFallbackError(null);
-                    }}
-                  />
-                  {expiresAt && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setExpiresAt("");
-                        setFallbackError(null);
-                      }}
-                    >
-                      Quitar
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Pasada esta fecha, el QR redirigirá a la URL de fallback durante 5 segundos.
-                </p>
-              </div>
+              <Accordion
+                type="multiple"
+                className="rounded-lg border border-border/60"
+              >
+                <AccordionItem
+                  value="expiration"
+                  className="border-b border-border/60 px-3"
+                >
+                  <AccordionTrigger className="text-sm font-medium">
+                    Expiración del QR
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pt-1">
+                    <div className="space-y-2">
+                      <Label htmlFor="qr-expires">Fecha de expiración</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="qr-expires"
+                          type="datetime-local"
+                          value={expiresAt}
+                          onChange={(e) => {
+                            setExpiresAt(e.target.value);
+                            if (!e.target.value) setFallbackError(null);
+                          }}
+                        />
+                        {expiresAt && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              setExpiresAt("");
+                              setFallbackError(null);
+                            }}
+                          >
+                            Quitar
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Pasada esta fecha, el QR redirigirá a la URL de fallback durante 5 segundos.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qr-fallback">URL después de expiración</Label>
+                      <Input
+                        id="qr-fallback"
+                        type="url"
+                        value={fallbackUrl}
+                        onChange={(e) => {
+                          setFallbackUrl(e.target.value);
+                          if (fallbackError) setFallbackError(null);
+                        }}
+                        placeholder="https://ejemplo.com/expirado"
+                        disabled={!expiresAt}
+                      />
+                      {fallbackError ? (
+                        <p className="text-xs text-destructive">{fallbackError}</p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Obligatoria solo si defines una fecha de expiración.
+                        </p>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
 
-              <div className="space-y-2">
-                <Label htmlFor="qr-fallback">URL después de expiración</Label>
-                <Input
-                  id="qr-fallback"
-                  type="url"
-                  value={fallbackUrl}
-                  onChange={(e) => {
-                    setFallbackUrl(e.target.value);
-                    if (fallbackError) setFallbackError(null);
-                  }}
-                  placeholder="https://ejemplo.com/expirado"
-                  disabled={!expiresAt}
-                />
-                {fallbackError ? (
-                  <p className="text-xs text-destructive">{fallbackError}</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Obligatoria solo si defines una fecha de expiración.
-                  </p>
-                )}
-              </div>
+                <AccordionItem value="schedule" className="px-3">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Redirección por horario
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-1">
+                    <TimeRulesEditor
+                      rules={timeRules}
+                      onChange={(next) => {
+                        setTimeRules(next);
+                        if (timeRuleErrors.length > 0) setTimeRuleErrors([]);
+                      }}
+                      errors={timeRuleErrors}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
               <div className="flex flex-col gap-2 pt-2 sm:flex-row">
                 <Button

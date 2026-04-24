@@ -55,6 +55,7 @@ export type Database = {
           is_dynamic: boolean
           name: string
           scan_count: number
+          time_rules: Json
           type: string
           updated_at: string
           user_id: string
@@ -69,6 +70,7 @@ export type Database = {
           is_dynamic?: boolean
           name: string
           scan_count?: number
+          time_rules?: Json
           type?: string
           updated_at?: string
           user_id: string
@@ -83,6 +85,7 @@ export type Database = {
           is_dynamic?: boolean
           name?: string
           scan_count?: number
+          time_rules?: Json
           type?: string
           updated_at?: string
           user_id?: string
