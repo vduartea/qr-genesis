@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
 import { Download, Eye, Loader2, Save, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/layout/SiteLayout";
@@ -40,6 +39,9 @@ import {
   type TimeRuleValidationError,
 } from "@/lib/timeRules";
 import { TimeRulesEditor } from "@/components/qr/TimeRulesEditor";
+import { DesignPanel } from "@/components/qr/DesignPanel";
+import { StyledQrPreview, type StyledQrPreviewHandle } from "@/components/qr/StyledQrPreview";
+import { DEFAULT_QR_DESIGN, type QrDesign } from "@/lib/qrDesign";
 
 export const Route = createFileRoute("/create")({
   head: () => ({
@@ -59,14 +61,13 @@ const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
 
 function CreatePage() {
   const { user, loading } = useAuth();
-  const canvasWrapRef = useRef<HTMLDivElement>(null);
+  const previewRef = useRef<StyledQrPreviewHandle>(null);
   // Guard against duplicate auto-execution after login (StrictMode + auth events).
   const autoRanRef = useRef(false);
 
   const [value, setValue] = useState("https://quark.app");
   const [name, setName] = useState("");
-  const [fgColor, setFgColor] = useState("#0F172A");
-  const [bgColor, setBgColor] = useState("#FFFFFF");
+  const [design, setDesign] = useState<QrDesign>(DEFAULT_QR_DESIGN);
   const [size] = useState(256);
   const [expiresAt, setExpiresAt] = useState("");
   const [fallbackUrl, setFallbackUrl] = useState("");
@@ -97,32 +98,30 @@ function CreatePage() {
     if (restored) {
       setValue(restored.value);
       if (restored.name) setName(restored.name);
-      setFgColor(restored.fgColor);
-      setBgColor(restored.bgColor);
+      setDesign((d) => ({
+        ...d,
+        fgColor: restored.fgColor,
+        bgColor: restored.bgColor,
+      }));
     }
   }, []);
 
-  const doDownload = useCallback(() => {
+  const doDownload = useCallback(async () => {
     if (!user) {
       // Safety net — never download from a guest preview (which is the demo QR).
       return;
     }
-    const canvas = canvasWrapRef.current?.querySelector("canvas");
-    if (!canvas) {
-      toast.error("No se pudo generar la imagen");
-      return;
-    }
-    const url = canvas.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
     const safeName = (name.trim() || "quark-qr")
       .toLowerCase()
       .replace(/[^a-z0-9-]+/g, "-")
       .replace(/^-+|-+$/g, "")
       .slice(0, 40) || "quark-qr";
-    a.download = `${safeName}-${Date.now()}.png`;
-    a.click();
-    toast.success("QR descargado");
+    try {
+      await previewRef.current?.download(`${safeName}-${Date.now()}`);
+      toast.success("QR descargado");
+    } catch {
+      toast.error("No se pudo generar la imagen");
+    }
   }, [user, name]);
 
   const doSave = useCallback(async () => {
@@ -175,6 +174,7 @@ function CreatePage() {
         expires_at: expiresIso,
         fallback_url: expiresIso ? fallbackUrl.trim() : null,
         time_rules: timeRules.map((r) => ({ ...r, url: r.url.trim() })),
+        design,
       });
       // Switch the live preview to the dynamic redirect URL so any
       // subsequent download embeds /r/{id}, not the raw destination.
@@ -195,7 +195,7 @@ function CreatePage() {
     } finally {
       setSaving(false);
     }
-  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules]);
+  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules, design]);
 
   // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
@@ -208,7 +208,7 @@ function CreatePage() {
     // Small delay so canvas is mounted with the real (post-login) value.
     const t = setTimeout(() => {
       if (pending === "download") {
-        doDownload();
+        void doDownload();
         clearPendingQr();
       } else if (pending === "save") {
         void doSave().finally(() => clearPendingQr());
@@ -219,12 +219,12 @@ function CreatePage() {
 
   const triggerProtectedAction = (action: "save" | "download") => {
     if (user) {
-      if (action === "download") doDownload();
+      if (action === "download") void doDownload();
       else void doSave();
       return;
     }
     // Persist progress + intent, then open gate
-    savePendingQr({ value, name, fgColor, bgColor, size });
+    savePendingQr({ value, name, fgColor: design.fgColor, bgColor: design.bgColor, size });
     setPendingAction(action);
     setLocalPendingAction(action);
     setGateOpen(true);
