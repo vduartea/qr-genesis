@@ -240,11 +240,21 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
           <Accordion
             type="multiple"
             defaultValue={[
+              "design",
               ...(qr?.expires_at ? ["expiration"] : []),
               ...(parseTimeRules(qr?.time_rules).length > 0 ? ["schedule"] : []),
             ]}
             className="rounded-lg border border-border/60"
           >
+            <AccordionItem value="design" className="border-b border-border/60 px-3">
+              <AccordionTrigger className="text-sm font-medium">
+                Diseño del QR
+              </AccordionTrigger>
+              <AccordionContent>
+                <DesignPanel design={design} onChange={setDesign} disabled={saving} />
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="expiration" className="border-b border-border/60 px-3">
               <AccordionTrigger className="text-sm font-medium">
                 Expiración del QR
