@@ -273,39 +273,23 @@ function CreatePage() {
                   maxLength={1000}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="qr-fg">Color principal</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="qr-fg"
-                      type="color"
-                      value={fgColor}
-                      onChange={(e) => setFgColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer rounded-md border border-input bg-transparent"
-                    />
-                    <Input value={fgColor} onChange={(e) => setFgColor(e.target.value)} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="qr-bg">Fondo</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="qr-bg"
-                      type="color"
-                      value={bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
-                      className="h-9 w-12 cursor-pointer rounded-md border border-input bg-transparent"
-                    />
-                    <Input value={bgColor} onChange={(e) => setBgColor(e.target.value)} />
-                  </div>
-                </div>
-              </div>
-
               <Accordion
                 type="multiple"
+                defaultValue={["design"]}
                 className="rounded-lg border border-border/60"
               >
+                <AccordionItem
+                  value="design"
+                  className="border-b border-border/60 px-3"
+                >
+                  <AccordionTrigger className="text-sm font-medium">
+                    Diseño del QR
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <DesignPanel design={design} onChange={setDesign} />
+                  </AccordionContent>
+                </AccordionItem>
+
                 <AccordionItem
                   value="expiration"
                   className="border-b border-border/60 px-3"
