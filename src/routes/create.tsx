@@ -407,17 +407,12 @@ function CreatePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div
-                ref={canvasWrapRef}
-                className="relative flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6"
-              >
-                <QRCodeCanvas
+              <div className="relative flex aspect-square items-center justify-center rounded-2xl border border-border/60 bg-surface p-6">
+                <StyledQrPreview
+                  ref={previewRef}
                   value={previewValue}
                   size={size}
-                  fgColor={fgColor}
-                  bgColor={bgColor}
-                  level="M"
-                  includeMargin
+                  design={design}
                 />
                 {isDemo && (
                   <div className="pointer-events-none absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-surface-elevated/95 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-soft backdrop-blur">
