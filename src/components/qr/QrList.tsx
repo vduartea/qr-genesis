@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { QRCodeCanvas } from "qrcode.react";
+import { useRef, useState } from "react";
 import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
@@ -22,6 +21,8 @@ import type { QrCode } from "@/services/qrService";
 import { getQrRedirectUrl } from "@/lib/qrUrl";
 import { EditQrDialog } from "@/components/qr/EditQrDialog";
 import { parseTimeRules } from "@/lib/timeRules";
+import { parseQrDesign } from "@/lib/qrDesign";
+import { StyledQrPreview, type StyledQrPreviewHandle } from "@/components/qr/StyledQrPreview";
 
 function shortUrl(url: string, max = 48): string {
   if (url.length <= max) return url;
@@ -63,31 +64,27 @@ function sanitizeFilename(name: string): string {
   return cleaned || "qr-code";
 }
 
-function downloadQr(qr: QrCode) {
-  const redirectUrl = getQrRedirectUrl(qr.id);
-  if (!redirectUrl) {
-    toast.error("Este QR aún no tiene una URL dinámica válida");
-    return;
-  }
-
-  const node = document.getElementById(`qr-canvas-${qr.id}`) as HTMLCanvasElement | null;
-  if (!node) {
-    toast.error("No se pudo generar el archivo");
-    return;
-  }
-  const url = node.toDataURL("image/png");
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${sanitizeFilename(qr.name)}.png`;
-  link.click();
-  toast.success("Descarga iniciada");
-}
-
 export function QrList() {
   const { qrs, loading, error, remove } = useQrs();
   const [pendingDelete, setPendingDelete] = useState<QrCode | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState<QrCode | null>(null);
+  // One imperative ref per QR card so we can trigger PNG download per item.
+  const previewRefs = useRef<Map<string, StyledQrPreviewHandle | null>>(new Map());
+
+  const handleDownload = async (qr: QrCode) => {
+    const handle = previewRefs.current.get(qr.id);
+    if (!handle) {
+      toast.error("No se pudo generar el archivo");
+      return;
+    }
+    try {
+      await handle.download(sanitizeFilename(qr.name));
+      toast.success("Descarga iniciada");
+    } catch {
+      toast.error("No se pudo generar el archivo");
+    }
+  };
 
   const handleConfirmDelete = async () => {
     if (!pendingDelete) return;
@@ -156,6 +153,7 @@ export function QrList() {
               !!qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now();
             const scheduleRules = parseTimeRules(qr.time_rules);
             const hasSchedule = scheduleRules.length > 0;
+            const design = parseQrDesign(qr.design);
 
             return (
           <Card
@@ -164,13 +162,15 @@ export function QrList() {
           >
             <div className="flex items-center justify-center bg-surface px-6 py-6">
               {redirectUrl ? (
-                <div className="rounded-lg bg-white p-3 shadow-soft">
-                  <QRCodeCanvas
-                    id={`qr-canvas-${qr.id}`}
+                <div className="shadow-soft">
+                  <StyledQrPreview
+                    ref={(h) => {
+                      if (h) previewRefs.current.set(qr.id, h);
+                      else previewRefs.current.delete(qr.id);
+                    }}
                     value={redirectUrl}
                     size={120}
-                    level="M"
-                    includeMargin={false}
+                    design={design}
                   />
                 </div>
               ) : (
@@ -250,7 +250,7 @@ export function QrList() {
                   variant="outline"
                   size="sm"
                   className="flex-1"
-                  onClick={() => downloadQr(qr)}
+                  onClick={() => void handleDownload(qr)}
                   disabled={!redirectUrl}
                 >
                   <Download className="h-4 w-4" />
