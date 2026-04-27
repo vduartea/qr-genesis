@@ -47,6 +47,7 @@ export type Database = {
       qr_codes: {
         Row: {
           created_at: string
+          design: Json
           destination_url: string
           expires_at: string | null
           fallback_url: string | null
@@ -62,6 +63,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          design?: Json
           destination_url: string
           expires_at?: string | null
           fallback_url?: string | null
@@ -77,6 +79,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          design?: Json
           destination_url?: string
           expires_at?: string | null
           fallback_url?: string | null
