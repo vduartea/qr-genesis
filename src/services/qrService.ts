@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import type { TimeRule } from "@/lib/timeRules";
+import type { QrDesign } from "@/lib/qrDesign";
 
 export type QrCode = Tables<"qr_codes">;
 export type QrCodeInsert = TablesInsert<"qr_codes">;
@@ -15,6 +16,7 @@ export type CreateQrInput = {
   expires_at?: string | null;
   fallback_url?: string | null;
   time_rules?: TimeRule[];
+  design?: QrDesign;
 };
 
 /**
@@ -43,6 +45,7 @@ export async function createQr(input: CreateQrInput): Promise<QrCode> {
     expires_at: input.expires_at ?? null,
     fallback_url: input.fallback_url ?? null,
     time_rules: (input.time_rules ?? []) as unknown as QrCodeInsert["time_rules"],
+    design: (input.design ?? {}) as unknown as QrCodeInsert["design"],
   };
 
   const { data, error } = await supabase
