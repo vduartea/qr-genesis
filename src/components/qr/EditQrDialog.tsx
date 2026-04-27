@@ -26,6 +26,12 @@ import {
   type TimeRuleValidationError,
 } from "@/lib/timeRules";
 import { TimeRulesEditor } from "@/components/qr/TimeRulesEditor";
+import { DesignPanel } from "@/components/qr/DesignPanel";
+import {
+  DEFAULT_QR_DESIGN,
+  parseQrDesign,
+  type QrDesign,
+} from "@/lib/qrDesign";
 
 interface EditQrDialogProps {
   qr: QrCode | null;
@@ -67,6 +73,7 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
   const [fallbackUrl, setFallbackUrl] = useState("");
   const [timeRules, setTimeRules] = useState<TimeRule[]>([]);
   const [timeRuleErrors, setTimeRuleErrors] = useState<TimeRuleValidationError[]>([]);
+  const [design, setDesign] = useState<QrDesign>(DEFAULT_QR_DESIGN);
   const [errors, setErrors] = useState<{
     name?: string;
     url?: string;
@@ -83,6 +90,7 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
       setFallbackUrl(qr.fallback_url ?? "");
       setTimeRules(parseTimeRules(qr.time_rules));
       setTimeRuleErrors([]);
+      setDesign(parseQrDesign(qr.design));
       setErrors({});
     }
   }, [qr]);
@@ -143,6 +151,8 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
     const prevRules = parseTimeRules(qr.time_rules);
     const rulesChanged =
       JSON.stringify(prevRules) !== JSON.stringify(trimmedRules);
+    const prevDesign = parseQrDesign(qr.design);
+    const designChanged = JSON.stringify(prevDesign) !== JSON.stringify(design);
 
     // Skip the request if nothing actually changed
     if (
@@ -150,7 +160,8 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
       trimmedUrl === qr.destination_url &&
       nextExpiresIso === (qr.expires_at ?? null) &&
       nextFallback === (qr.fallback_url ?? null) &&
-      !rulesChanged
+      !rulesChanged &&
+      !designChanged
     ) {
       onOpenChange(false);
       return;
@@ -164,6 +175,7 @@ export function EditQrDialog({ qr, open, onOpenChange }: EditQrDialogProps) {
         expires_at: nextExpiresIso,
         fallback_url: nextFallback,
         time_rules: trimmedRules as unknown as QrCode["time_rules"],
+        design: design as unknown as QrCode["design"],
       });
       toast.success("QR actualizado correctamente");
       onOpenChange(false);
