@@ -21,6 +21,7 @@ export type Database = {
           display_name: string | null
           email: string | null
           id: string
+          tenant_id: string
           updated_at: string
           user_id: string
         }
@@ -30,6 +31,7 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          tenant_id: string
           updated_at?: string
           user_id: string
         }
@@ -39,10 +41,19 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           id?: string
+          tenant_id?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_codes: {
         Row: {
@@ -56,6 +67,7 @@ export type Database = {
           is_dynamic: boolean
           name: string
           scan_count: number
+          tenant_id: string
           time_rules: Json
           type: string
           updated_at: string
@@ -72,6 +84,7 @@ export type Database = {
           is_dynamic?: boolean
           name: string
           scan_count?: number
+          tenant_id: string
           time_rules?: Json
           type?: string
           updated_at?: string
@@ -88,10 +101,43 @@ export type Database = {
           is_dynamic?: boolean
           name?: string
           scan_count?: number
+          tenant_id?: string
           time_rules?: Json
           type?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_codes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -100,6 +146,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_tenant_slug: { Args: { _base: string }; Returns: string }
+      get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       increment_qr_scan: { Args: { _qr_id: string }; Returns: undefined }
     }
     Enums: {
