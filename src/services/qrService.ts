@@ -35,7 +35,7 @@ async function getCurrentUserId(): Promise<string> {
 export async function createQr(input: CreateQrInput): Promise<QrCode> {
   const userId = await getCurrentUserId();
 
-  const payload: QrCodeInsert = {
+  const payload = {
     user_id: userId,
     name: input.name,
     destination_url: input.destination_url,
@@ -46,7 +46,7 @@ export async function createQr(input: CreateQrInput): Promise<QrCode> {
     fallback_url: input.fallback_url ?? null,
     time_rules: (input.time_rules ?? []) as unknown as QrCodeInsert["time_rules"],
     design: (input.design ?? {}) as unknown as QrCodeInsert["design"],
-  };
+  } as unknown as QrCodeInsert;
 
   const { data, error } = await supabase
     .from("qr_codes")

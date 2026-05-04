@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useQrs } from "@/hooks/useQrs";
+import { useTenant } from "@/hooks/useTenant";
 import { Badge } from "@/components/ui/badge";
 import { QrList } from "@/components/qr/QrList";
 
@@ -30,6 +31,7 @@ function DashboardPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { qrs, loading: qrsLoading } = useQrs();
+  const { tenant } = useTenant();
 
   const totalScans = qrs.reduce((sum, q) => sum + (q.scan_count ?? 0), 0);
   const stats = [
@@ -78,6 +80,13 @@ function DashboardPage() {
             <p className="mt-2 text-muted-foreground">
               Tu espacio para crear y organizar códigos QR.
             </p>
+            {tenant && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/60 bg-surface px-3 py-1 text-xs">
+                <span className="text-muted-foreground">Tienda:</span>
+                <span className="font-medium text-foreground">{tenant.name}</span>
+                <span className="text-muted-foreground">/{tenant.slug}</span>
+              </div>
+            )}
           </div>
           <Button asChild variant="hero" size="lg">
             <Link to="/create">
