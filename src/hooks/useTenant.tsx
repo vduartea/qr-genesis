@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { getCurrentTenant, updateTenantName, type Tenant } from "@/services/tenantService";
+import {
+  getCurrentTenant,
+  updateTenantName,
+  setCustomDomain,
+  clearCustomDomain,
+  type Tenant,
+} from "@/services/tenantService";
 
 export function useTenant() {
   const { user, loading: authLoading } = useAuth();
@@ -25,5 +31,19 @@ export function useTenant() {
     return updated;
   }, [tenant]);
 
-  return { tenant, loading, error, refresh, rename };
+  const saveDomain = useCallback(async (domain: string) => {
+    if (!tenant) throw new Error("Sin tenant");
+    const updated = await setCustomDomain(tenant.id, domain);
+    setTenant(updated);
+    return updated;
+  }, [tenant]);
+
+  const removeDomain = useCallback(async () => {
+    if (!tenant) throw new Error("Sin tenant");
+    const updated = await clearCustomDomain(tenant.id);
+    setTenant(updated);
+    return updated;
+  }, [tenant]);
+
+  return { tenant, loading, error, refresh, rename, saveDomain, removeDomain };
 }
