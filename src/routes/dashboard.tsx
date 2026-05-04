@@ -16,6 +16,7 @@ import { useQrs } from "@/hooks/useQrs";
 import { useTenant } from "@/hooks/useTenant";
 import { Badge } from "@/components/ui/badge";
 import { QrList } from "@/components/qr/QrList";
+import { CustomDomainCard } from "@/components/tenant/CustomDomainCard";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -124,6 +125,10 @@ function DashboardPage() {
             <h2 className="font-display text-xl font-semibold">Mis QRs</h2>
           </div>
           <QrList />
+        </section>
+
+        <section className="mt-10">
+          <CustomDomainCard />
         </section>
 
         <Card className="mt-8 border-dashed border-border bg-surface shadow-none">
