@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +106,9 @@ export function CustomDomainCard() {
               Eliminar dominio
             </Button>
           )}
+          <Button asChild variant="secondary">
+            <Link to="/settings/domain">Conectar dominio</Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
