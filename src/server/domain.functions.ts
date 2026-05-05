@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { CNAME_TARGET } from "@/lib/domainConfig";
 
 function normalizeCname(value: string): string {
@@ -23,9 +24,30 @@ async function resolveCname(domain: string): Promise<string[]> {
 }
 
 export const verifyTenantDomain = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { supabase, userId } = context;
+  .inputValidator((input: { accessToken: string }) => {
+    if (!input?.accessToken || typeof input.accessToken !== "string") {
+      throw new Error("Missing access token");
+    }
+    return input;
+  })
+  .handler(async ({ data }) => {
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+      throw new Error("Missing Supabase env vars");
+    }
+
+    // Authenticated client scoped to caller — RLS enforces tenant isolation.
+    const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      global: { headers: { Authorization: `Bearer ${data.accessToken}` } },
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(data.accessToken);
+    if (claimsErr || !claims?.claims?.sub) {
+      throw new Error("Unauthorized");
+    }
+    const userId = claims.claims.sub;
 
     // Get user's tenant
     const { data: profile, error: pErr } = await supabase
