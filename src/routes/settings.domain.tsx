@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/table";
 import { useTenant } from "@/hooks/useTenant";
 import { CNAME_TARGET } from "@/lib/domainConfig";
+import { verifyTenantDomain } from "@/server/domain.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings/domain")({
   head: () => ({
@@ -63,9 +65,10 @@ function deriveHost(domain: string | null): string {
 }
 
 function ConnectDomainPage() {
-  const { tenant, loading, saveDomain } = useTenant();
+  const { tenant, loading, saveDomain, refresh } = useTenant();
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     setValue(tenant?.custom_domain ?? "");
@@ -90,6 +93,29 @@ function ConnectDomainPage() {
   const copy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Copiado al portapapeles");
+  };
+
+  const onVerify = async () => {
+    setVerifying(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) {
+        toast.error("Debes iniciar sesión.");
+        return;
+      }
+      const result = await verifyTenantDomain({ data: { accessToken } });
+      if (result.ok) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+      await refresh();
+    } catch {
+      toast.error("No se pudo verificar el dominio en este momento.");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   return (
@@ -225,10 +251,15 @@ function ConnectDomainPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button disabled>Verificar dominio</Button>
-              <p className="text-xs text-muted-foreground">
-                La verificación automática se implementará en la siguiente etapa.
-              </p>
+              <Button onClick={onVerify} disabled={!hasDomain || verifying}>
+                {verifying && <Loader2 className="h-4 w-4 animate-spin" />}
+                Verificar dominio
+              </Button>
+              {!hasDomain && (
+                <p className="text-xs text-muted-foreground">
+                  Guarda primero un dominio en el Paso 1.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
