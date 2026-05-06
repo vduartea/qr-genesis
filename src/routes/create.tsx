@@ -200,7 +200,7 @@ function CreatePage() {
     } finally {
       setSaving(false);
     }
-  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules, design]);
+  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules, design, tenant]);
 
   // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
@@ -435,6 +435,25 @@ function CreatePage() {
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Este QR apunta a <span className="font-medium text-foreground break-all">{value || "tu URL"}</span>.
                 </p>
+              )}
+              {!isDemo && (
+                <div className="rounded-lg border border-border/60 bg-surface px-3 py-2 text-xs">
+                  {tenant && tenant.custom_domain && tenant.custom_domain_status === "verified" ? (
+                    <p className="text-muted-foreground">
+                      Este QR usará: {" "}
+                      <span className="font-medium text-foreground break-all">
+                        https://{tenant.custom_domain}/q/&lt;id&gt;
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Este QR usará el dominio predeterminado de la app
+                      {tenant?.custom_domain && tenant.custom_domain_status !== "verified"
+                        ? ` (tu dominio personalizado aún no está verificado, CNAME → ${CNAME_TARGET}).`
+                        : "."}
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
