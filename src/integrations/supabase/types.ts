@@ -66,6 +66,7 @@ export type Database = {
           is_active: boolean
           is_dynamic: boolean
           name: string
+          public_qr_url: string | null
           scan_count: number
           tenant_id: string
           time_rules: Json
@@ -83,6 +84,7 @@ export type Database = {
           is_active?: boolean
           is_dynamic?: boolean
           name: string
+          public_qr_url?: string | null
           scan_count?: number
           tenant_id: string
           time_rules?: Json
@@ -100,6 +102,7 @@ export type Database = {
           is_active?: boolean
           is_dynamic?: boolean
           name?: string
+          public_qr_url?: string | null
           scan_count?: number
           tenant_id?: string
           time_rules?: Json
