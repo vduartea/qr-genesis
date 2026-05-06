@@ -11,22 +11,15 @@ import { getDomainContext } from "@/server/requestDomain";
 export const Route = createFileRoute("/r/$id")({
   server: {
     handlers: {
-      GET: async ({ params }) => {
+      GET: async ({ params, request }) => {
         try {
           // Stage 6: detect incoming host (Host header) — logging only.
           // Does NOT change redirect logic or tenant resolution yet.
-          try {
-            const { request } = await import("@tanstack/react-start/server").then(
-              (m) => ({ request: m.getRequest() }),
+          const domainCtx = getDomainContext(request);
+          if (process.env.NODE_ENV !== "production") {
+            console.log(
+              `[domain] Incoming request from host: ${domainCtx.host ?? "(unknown)"} (custom=${domainCtx.isCustomDomain})`,
             );
-            const ctx = getDomainContext(request);
-            if (process.env.NODE_ENV !== "production") {
-              console.log(
-                `[domain] Incoming request from host: ${ctx.host ?? "(unknown)"} (custom=${ctx.isCustomDomain})`,
-              );
-            }
-          } catch {
-            // best-effort; never break redirects
           }
           const result = await resolveQrRedirect({ data: { id: params.id } });
 
