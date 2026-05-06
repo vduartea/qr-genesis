@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock, CalendarClock } from "lucide-react";
+import { Download, Trash2, ExternalLink, QrCode as QrCodeIcon, BarChart3, Pencil, Clock, CalendarClock, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQrs } from "@/hooks/useQrs";
 import type { QrCode } from "@/services/qrService";
-import { getQrRedirectUrl } from "@/lib/qrUrl";
+import { buildQrPublicUrl } from "@/lib/qrUrl";
+import { useTenant } from "@/hooks/useTenant";
 import { EditQrDialog } from "@/components/qr/EditQrDialog";
 import { parseTimeRules } from "@/lib/timeRules";
 import { parseQrDesign } from "@/lib/qrDesign";
@@ -66,6 +67,7 @@ function sanitizeFilename(name: string): string {
 
 export function QrList() {
   const { qrs, loading, error, remove } = useQrs();
+  const { tenant } = useTenant();
   const [pendingDelete, setPendingDelete] = useState<QrCode | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState<QrCode | null>(null);
@@ -83,6 +85,15 @@ export function QrList() {
       toast.success("Descarga iniciada");
     } catch {
       toast.error("No se pudo generar el archivo");
+    }
+  };
+
+  const handleCopy = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("URL copiada");
+    } catch {
+      toast.error("No se pudo copiar");
     }
   };
 
@@ -148,7 +159,7 @@ export function QrList() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {qrs.map((qr) => (
           (() => {
-            const redirectUrl = getQrRedirectUrl(qr.id);
+            const redirectUrl = buildQrPublicUrl(qr, tenant);
             const isExpired =
               !!qr.expires_at && new Date(qr.expires_at).getTime() <= Date.now();
             const scheduleRules = parseTimeRules(qr.time_rules);
@@ -208,6 +219,22 @@ export function QrList() {
                 <ExternalLink className="h-3 w-3 shrink-0" />
                 <span className="truncate">{shortUrl(qr.destination_url)}</span>
               </a>
+              {redirectUrl && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-surface px-3 py-2 text-xs">
+                  <span className="truncate font-mono text-muted-foreground" title={redirectUrl}>
+                    {shortUrl(redirectUrl, 36)}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2"
+                    onClick={() => void handleCopy(redirectUrl)}
+                    aria-label="Copiar URL pública"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
               <div className="flex items-center justify-between gap-2 rounded-lg border border-border/60 bg-surface px-3 py-2">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <BarChart3 className="h-3.5 w-3.5" />

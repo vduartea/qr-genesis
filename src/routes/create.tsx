@@ -26,7 +26,9 @@ import {
   type PendingAction,
 } from "@/lib/pendingQr";
 import { createQr } from "@/services/qrService";
-import { buildRedirectUrl } from "@/lib/qrUrl";
+import { buildQrPublicUrl } from "@/lib/qrUrl";
+import { useTenant } from "@/hooks/useTenant";
+import { CNAME_TARGET } from "@/lib/domainConfig";
 import {
   Accordion,
   AccordionContent,
@@ -61,6 +63,7 @@ const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
 
 function CreatePage() {
   const { user, loading } = useAuth();
+  const { tenant } = useTenant();
   const previewRef = useRef<StyledQrPreviewHandle>(null);
   // Guard against duplicate auto-execution after login (StrictMode + auth events).
   const autoRanRef = useRef(false);
@@ -177,8 +180,10 @@ function CreatePage() {
         design,
       });
       // Switch the live preview to the dynamic redirect URL so any
-      // subsequent download embeds /r/{id}, not the raw destination.
-      setSavedRedirectUrl(buildRedirectUrl(created.id));
+      // subsequent download embeds the real public URL (custom domain
+      // when verified, otherwise /r/{id}), not the raw destination.
+      const publicUrl = buildQrPublicUrl(created, tenant);
+      if (publicUrl) setSavedRedirectUrl(publicUrl);
       toast.success("Tu QR ha sido guardado en tu cuenta", {
         id: toastId,
         description: `"${created.name}" está disponible en tu dashboard.`,
@@ -195,7 +200,7 @@ function CreatePage() {
     } finally {
       setSaving(false);
     }
-  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules, design]);
+  }, [user, value, name, saving, expiresAt, fallbackUrl, timeRules, design, tenant]);
 
   // After login, auto-resume pending action (runs once per session).
   useEffect(() => {
@@ -430,6 +435,25 @@ function CreatePage() {
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Este QR apunta a <span className="font-medium text-foreground break-all">{value || "tu URL"}</span>.
                 </p>
+              )}
+              {!isDemo && (
+                <div className="rounded-lg border border-border/60 bg-surface px-3 py-2 text-xs">
+                  {tenant && tenant.custom_domain && tenant.custom_domain_status === "verified" ? (
+                    <p className="text-muted-foreground">
+                      Este QR usará: {" "}
+                      <span className="font-medium text-foreground break-all">
+                        https://{tenant.custom_domain}/q/&lt;id&gt;
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Este QR usará el dominio predeterminado de la app
+                      {tenant?.custom_domain && tenant.custom_domain_status !== "verified"
+                        ? ` (tu dominio personalizado aún no está verificado, CNAME → ${CNAME_TARGET}).`
+                        : "."}
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
