@@ -26,7 +26,9 @@ import {
   type PendingAction,
 } from "@/lib/pendingQr";
 import { createQr } from "@/services/qrService";
-import { buildRedirectUrl } from "@/lib/qrUrl";
+import { buildQrPublicUrl } from "@/lib/qrUrl";
+import { useTenant } from "@/hooks/useTenant";
+import { CNAME_TARGET } from "@/lib/domainConfig";
 import {
   Accordion,
   AccordionContent,
@@ -61,6 +63,7 @@ const DEMO_PREVIEW_URL = "https://qr-genesis.lovable.app";
 
 function CreatePage() {
   const { user, loading } = useAuth();
+  const { tenant } = useTenant();
   const previewRef = useRef<StyledQrPreviewHandle>(null);
   // Guard against duplicate auto-execution after login (StrictMode + auth events).
   const autoRanRef = useRef(false);
@@ -177,8 +180,10 @@ function CreatePage() {
         design,
       });
       // Switch the live preview to the dynamic redirect URL so any
-      // subsequent download embeds /r/{id}, not the raw destination.
-      setSavedRedirectUrl(buildRedirectUrl(created.id));
+      // subsequent download embeds the real public URL (custom domain
+      // when verified, otherwise /r/{id}), not the raw destination.
+      const publicUrl = buildQrPublicUrl(created, tenant);
+      if (publicUrl) setSavedRedirectUrl(publicUrl);
       toast.success("Tu QR ha sido guardado en tu cuenta", {
         id: toastId,
         description: `"${created.name}" está disponible en tu dashboard.`,
