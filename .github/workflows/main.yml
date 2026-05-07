@@ -53,7 +53,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
           protocol: ${{ secrets.FTP_PROTOCOL }}   # 'ftps' recomendado
-          local-dir: .output/client/
+          local-dir: dist/client/
           server-dir: /qr.noniwa.cl/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
           exclude: |
             **/.git*
