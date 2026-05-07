@@ -27,18 +27,20 @@ jobs:
       - name: Build (Vite)
         run: npm run build
 
+      - name: Ver build output
+        run: |
+          echo "Contenido raíz:"
+          ls -la
+          echo "Contenido .output:"
+          ls -la .output || true
+          echo "Contenido dist:"
+          ls -la dist || true
+
 
       # 4 BACKEND: Instalar dependencias
       # No hay backend
 
-- name: Ver build output
-  run: |
-    echo "Contenido raíz:"
-    ls -la
-    echo "Contenido .output:"
-    ls -la .output || true
-    echo "Contenido dist:"
-    ls -la dist || true
+
 
 
 
