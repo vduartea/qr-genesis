@@ -1,0 +1,61 @@
+name: Build & Deploy QR APP by FTPS
+
+on:
+  push:
+    branches: [ main ]  # ajusta si usas otra rama
+  workflow_dispatch: {} # permite ejecutarlo manualmente
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm install
+
+      - name: Build (Vite)
+        run: npm run build
+
+
+      # 4 BACKEND: Instalar dependencias
+      # No hay backend
+
+
+
+      # 5 DEPLOY FRONTEND: Sube SOLO la carpeta dist/ al docroot del subdominio
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER_2 }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          port: ${{ secrets.FTP_PORT }}
+          protocol: ${{ secrets.FTP_PROTOCOL }}   # 'ftps' recomendado
+          local-dir: dist/
+          server-dir: /qr.noniwa.cl/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
+          exclude: |
+            **/.git*
+            **/.github/**
+            **/node_modules/**
+
+      # 6️ DEPLOY BACKEND
+        ## No hay backend
+
+      # 7️ REINICIAR BACKEND (Passenger)
+        ## No hay backend
+
+          
+
+
+        ##
