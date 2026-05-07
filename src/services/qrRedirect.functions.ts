@@ -96,7 +96,7 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
     // Falls back to the legacy increment if the new RPC isn't available.
     const { error: rpcError } = await supabase.rpc("record_qr_scan", {
       _qr_id: qr.id,
-      _host: data.host ?? null,
+      _host: data.host ?? "",
     });
 
     if (rpcError) {
