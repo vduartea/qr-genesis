@@ -35,6 +35,8 @@ jobs:
           cp package.json deploy/package.json
           cp package-lock.json deploy/package-lock.json
           mkdir -p deploy/tmp
+          echo "Deploy content:"
+          find deploy -maxdepth 3 -type f
 
       - name: Show build files
         run: |
@@ -60,8 +62,9 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
           protocol: ${{ secrets.FTP_PROTOCOL }}   # 'ftps' recomendado
-          local-dir: dist/
+          local-dir: deploy/
           server-dir: /qrs/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
+          dangerous-clean-slate: false
           exclude: |
             **/.git*
             **/.github/**
