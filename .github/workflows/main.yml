@@ -70,20 +70,7 @@ jobs:
         ## No hay backend
 
       # 7️ REINICIAR BACKEND (Passenger)
-      - name: Restart Node app via SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd ~/qr.noniwa.cl
-            npm install --omit=dev
-            mkdir -p tmp
-            touch tmp/restart.txt
-
-          
+         
 
 
         #
