@@ -27,14 +27,21 @@ jobs:
       - name: Build (Vite)
         run: npm run build
 
-      - name: Ver build output
+      - name: Prepare deploy folder
         run: |
-          echo "Contenido raíz:"
-          ls -la
-          echo "Contenido .output:"
-          ls -la .output || true
-          echo "Contenido dist:"
-          ls -la dist || true
+          rm -rf deploy
+          mkdir -p deploy
+          cp -R dist deploy/dist
+          cp package.json deploy/package.json
+          cp package-lock.json deploy/package-lock.json
+          mkdir -p deploy/tmp
+
+      - name: Show build files
+        run: |
+          echo "dist:"
+          find dist -maxdepth 3 -type f
+          echo "deploy:"
+          find deploy -maxdepth 3 -type f
 
 
       # 4 BACKEND: Instalar dependencias
@@ -63,7 +70,18 @@ jobs:
         ## No hay backend
 
       # 7️ REINICIAR BACKEND (Passenger)
-        ## No hay backend
+      - name: Restart Node app via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ~/qr.noniwa.cl
+            npm install --omit=dev
+            mkdir -p tmp
+            touch tmp/restart.txt
 
           
 
