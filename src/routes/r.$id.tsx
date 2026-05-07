@@ -21,7 +21,9 @@ export const Route = createFileRoute("/r/$id")({
               `[domain] Incoming request from host: ${domainCtx.host ?? "(unknown)"} (custom=${domainCtx.isCustomDomain})`,
             );
           }
-          const result = await resolveQrRedirect({ data: { id: params.id } });
+          const result = await resolveQrRedirect({
+            data: { id: params.id, host: domainCtx.host ?? null },
+          });
 
           if (result.status === "ok") {
             return new Response(null, {

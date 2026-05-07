@@ -41,7 +41,10 @@ function getPublicSupabase() {
 }
 
 export const resolveQrRedirect = createServerFn({ method: "GET" })
-  .inputValidator((input: { id: string }) => input)
+  .inputValidator(
+    (input: { id: string; tenantId?: string | null; host?: string | null }) =>
+      input,
+  )
   .handler(async ({ data }): Promise<ResolveQrRedirectResult> => {
     if (!isValidQrId(data.id)) {
       return { status: "invalid" };
@@ -49,11 +52,21 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
 
     const supabase = getPublicSupabase();
 
-    const { data: qr, error } = await supabase
+    let query = supabase
       .from("qr_codes")
-      .select("id, destination_url, is_active, expires_at, fallback_url, time_rules")
-      .eq("id", data.id)
-      .maybeSingle();
+      .select(
+        "id, destination_url, is_active, expires_at, fallback_url, time_rules, tenant_id",
+      )
+      .eq("id", data.id);
+
+    // Stage 8: when the request comes from a custom domain, restrict the
+    // lookup to that tenant. This prevents a custom domain from resolving
+    // QRs that belong to another tenant.
+    if (data.tenantId) {
+      query = query.eq("tenant_id", data.tenantId);
+    }
+
+    const { data: qr, error } = await query.maybeSingle();
 
     if (error) {
       console.error("[qr-redirect] lookup failed", error);
@@ -78,17 +91,16 @@ export const resolveQrRedirect = createServerFn({ method: "GET" })
     const activeUrl = findActiveRuleUrl(rules);
     const finalDestination = activeUrl ?? qr.destination_url;
 
-    // IMPORTANT: await the RPC. In the Worker runtime, the request context
-    // terminates as soon as we return the Response, which would cancel an
-    // un-awaited promise and prevent scan_count from being updated.
-    const { error: rpcError } = await supabase.rpc("increment_qr_scan", {
+    // Stage 8: record_qr_scan inserts a row in qr_scans (qr_code_id,
+    // tenant_id, host, scanned_at) and increments scan_count atomically.
+    // Falls back to the legacy increment if the new RPC isn't available.
+    const { error: rpcError } = await supabase.rpc("record_qr_scan", {
       _qr_id: qr.id,
+      _host: data.host ?? "",
     });
 
     if (rpcError) {
-      console.error("[qr-redirect] scan increment failed", rpcError);
-    } else {
-      console.log("[qr-redirect] scan incremented for", qr.id);
+      console.error("[qr-redirect] record_qr_scan failed", rpcError);
     }
 
     return { status: "ok", destinationUrl: finalDestination };

@@ -120,6 +120,45 @@ export type Database = {
           },
         ]
       }
+      qr_scans: {
+        Row: {
+          host: string | null
+          id: string
+          qr_code_id: string
+          scanned_at: string
+          tenant_id: string
+        }
+        Insert: {
+          host?: string | null
+          id?: string
+          qr_code_id: string
+          scanned_at?: string
+          tenant_id: string
+        }
+        Update: {
+          host?: string | null
+          id?: string
+          qr_code_id?: string
+          scanned_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_scans_qr_code_id_fkey"
+            columns: ["qr_code_id"]
+            isOneToOne: false
+            referencedRelation: "qr_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qr_scans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           created_at: string
@@ -161,6 +200,10 @@ export type Database = {
       generate_tenant_slug: { Args: { _base: string }; Returns: string }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       increment_qr_scan: { Args: { _qr_id: string }; Returns: undefined }
+      record_qr_scan: {
+        Args: { _host: string; _qr_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

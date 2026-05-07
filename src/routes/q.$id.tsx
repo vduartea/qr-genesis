@@ -33,7 +33,15 @@ export const Route = createFileRoute("/q/$id")({
         }
 
         try {
-          const result = await resolveQrRedirect({ data: { id: params.id } });
+          const tenantId =
+            tenantRes.kind === "tenant" ? tenantRes.tenant.id : null;
+          const result = await resolveQrRedirect({
+            data: {
+              id: params.id,
+              tenantId,
+              host: tenantRes.host ?? null,
+            },
+          });
 
           if (result.status === "ok") {
             return new Response(null, {
