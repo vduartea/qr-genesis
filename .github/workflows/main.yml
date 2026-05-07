@@ -31,6 +31,15 @@ jobs:
       # 4 BACKEND: Instalar dependencias
       # No hay backend
 
+- name: Ver build output
+  run: |
+    echo "Contenido raíz:"
+    ls -la
+    echo "Contenido .output:"
+    ls -la .output || true
+    echo "Contenido dist:"
+    ls -la dist || true
+
 
 
       # 5 DEPLOY FRONTEND: Sube SOLO la carpeta dist/ al docroot del subdominio
@@ -42,7 +51,7 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: ${{ secrets.FTP_PORT }}
           protocol: ${{ secrets.FTP_PROTOCOL }}   # 'ftps' recomendado
-          local-dir: dist/
+          local-dir: .output/client/
           server-dir: /qr.noniwa.cl/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
           exclude: |
             **/.git*
