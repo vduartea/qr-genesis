@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { useTenant } from "@/hooks/useTenant";
 import { CNAME_TARGET } from "@/lib/domainConfig";
-import { verifyTenantDomain } from "@/server/domain.functions";
+import { verifyTenantDomain } from "@/domain/domain.functions";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/settings/domain")({
