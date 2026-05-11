@@ -63,7 +63,7 @@ jobs:
           port: ${{ secrets.FTP_PORT }}
           protocol: ${{ secrets.FTP_PROTOCOL }}   # 'ftps' recomendado
           local-dir: deploy/
-          server-dir: /qrs/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
+          server-dir: /qr-code.cvdigital.app/                          # porque el home del FTP es /home/noniwacl/qr.noniwa.cl/
           dangerous-clean-slate: false
           exclude: |
             **/.git*
