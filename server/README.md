@@ -31,9 +31,13 @@ server-side `302` — that's required for scanner compatibility and analytics.
 3. In cPanel → **Setup Node.js App**:
    - Node.js version: **18**
    - Application root: project root
-   - Application startup file: `server/index.js`
+   - Application startup file: `server/index.cjs`
    - Run `npm install` from the cPanel UI
    - Start command: `npm start`
+
+   > Note: the entry file is `.cjs` (CommonJS) because `package.json` has
+   > `"type": "module"` (required by Vite/TanStack). The `.cjs` extension
+   > tells Node 18 to load it as CommonJS so `require()` works.
 
 4. Environment variables to set in cPanel:
    - `PORT` (cPanel injects this automatically)
