@@ -30,7 +30,7 @@ app.use(express.json({ limit: '1mb' }));
 
 // Mount API routes (only if you add any).
 try {
-  const apiRouter = require('./routes');
+  const apiRouter = require('./routes/index.cjs');
   app.use('/api', apiRouter);
 } catch (err) {
   if (err && err.code !== 'MODULE_NOT_FOUND') throw err;
